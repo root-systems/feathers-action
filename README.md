@@ -2,7 +2,9 @@
 
 #### *work in progress*
 
-use [`feathers`](http://feathersjs.com) with [`redux`](http://redux.js.org)
+never write another CRUD redux action!
+
+this module helps you use [`feathers`](http://feathersjs.com), [`redux`](http://redux.js.org), and [`tcomb`](https://www.npmjs.com/package/tcomb).
 
 ## install
 
@@ -16,41 +18,58 @@ npm install --save feathers-action
 
 ```js
 // client.js
-var feathers = require('feathers-client')
-var fetch = require('isomorphic-fetch')
+const feathers = require('feathers-client')
+const fetch = require('isomorphic-fetch')
 
-var client = feathers()
+const client = feathers()
   .configure(feathers.fetch(fetch))
 
 module.exports = client
 ```
 
 ```js
-// actions.js
-var createActionCreators = require('feathers-action').createActionCreators
-var client = require('./client')
+// types.js
+const t = require('tcomb')
 
-var actionCreators = createActionCreators(client, 'todos')
+const Thing = t.struct({
+  id: t.Number,
+  name: t.String,
+  description: t.String
+}, 'Thing')
+
+const Collection = t.List(Thing, 'Things')
+
+module.exports = { Thing, Things }
+```
+
+```js
+// actions.js
+const createActionCreators = require('feathers-action').createActionCreators
+const client = require('./client')
+const Things = require('./types').Things
+
+const actionCreators = createActionCreators(client, Things)
 
 module.exports = actionCreators
 ```
 
 ```js
 // reducer.js
-var createReducer = require('feathers-action').createReducer
+const createReducer = require('feathers-action').createReducer
+const Things = require('./types').Things
 
-var reducer = createReducer('todos')
+const reducer = createReducer(Things)
 ```
 
 ```js
 // store.js
-var redux = require('redux')
-var thunk = require('redux-thunk')
-var reducer = require('./reducer')
+const redux = require('redux')
+const thunk = require('redux-thunk')
+const reducer = require('./reducer')
 
 module.exports = createStore
 
-var createStoreWithMiddleware = redux.applyMiddleware(thunk)(redux.createStore)
+const createStoreWithMiddleware = redux.applyMiddleware(thunk)(redux.createStore)
 
 function createStore (initialState) {
   return createStoreWithMiddlware(reducer, initialState)
@@ -59,10 +78,10 @@ function createStore (initialState) {
 
 ## ecosystem
 
-`feathers-action` is composed of modules for each part. if you have other opinions on how to join them together, feel free to do as you please! :)
+`feathers-action` is composed of small modules for each part. if you have other opinions on how to join them together, feel free to do as you please! :)
 
-- [feathers-client](https://www.npmjs.org/package/feathers-client)
-- [feathers-action-types](https://github.com/ahdinosaur/feathers-action-types)
-- [feathers-action-reducer](https://github.com/ahdinosaur/feathers-action-reducer)
-- [feathers-action-creators](https://github.com/ahdinosaur/feathers-action-creators)
-- [tcomb](https://www.npmjs.org/package/tcomb)
+- [feathers-client](https://www.npmjs.com/package/feathers-client)
+- [feathers-action-types](https://www.npmjs.com/package/feathers-action-types)
+- [feathers-action-reducer](https://www.npmjs.com/package/feathers-action-reducer)
+- [feathers-action-creators](https://www.npmjs.com/package/feathers-action-creators)
+- [tcomb](https://www.npmjs.com/package/tcomb)
