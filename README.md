@@ -37,7 +37,7 @@ const Thing = t.struct({
   description: t.String
 }, 'Thing')
 
-const Collection = t.List(Thing, 'Things')
+const Things = t.List(Thing, 'Things')
 
 module.exports = { Thing, Things }
 ```
