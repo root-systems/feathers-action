@@ -1,6 +1,6 @@
 {
   "name": "feathers-action",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "use feathers services with redux",
   "main": "index.js",
   "scripts": {
@@ -25,11 +25,21 @@
     "url": "https://github.com/ahdinosaur/feathers-action/issues"
   },
   "homepage": "https://github.com/ahdinosaur/feathers-action#readme",
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "dependencies": {
     "cuid": "^1.3.8",
     "feathers-action-creators": "^1.0.0",
-    "feathers-action-reducer": "^1.0.0",
+    "feathers-action-reducer": "^1.0.1",
     "feathers-action-types": "^1.0.0",
     "tcomb": "^2.5.2"
+  },
+  "devDependencies": {
+    "feathers": "^1.3.0",
+    "feathers-memory": "^0.5.1",
+    "redux": "^3.0.5",
+    "redux-thunk": "^1.0.3",
+    "tape": "^4.4.0"
   }
 }

@@ -48,9 +48,10 @@ const createActionCreators = require('feathers-action').createActionCreators
 const client = require('./client')
 const Things = require('./types').Things
 
-const actionCreators = createActionCreators(client, Things)
+const actions = createActions(client, Things)
+// or actionCreators = createActionCreators(...)
 
-module.exports = actionCreators
+module.exports = actions
 ```
 
 ```js

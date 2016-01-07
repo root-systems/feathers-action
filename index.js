@@ -6,27 +6,36 @@ const createActionReducer = require('feathers-action-reducer')
 
 module.exports = {
   createActionCreators: __createActionCreators,
+  createActions: __createActionCreators,
+  createActionReducer: __createActionReducer,
   createReducer: __createActionReducer,
-  createActionTypes: __createActionTypes
+  createActionTypes: __createActionTypes,
+  createTypes: __createActionTypes
 }
 
 function __createActionCreators (app, Collection, config) {
   const serviceName = Collection.meta.name
   const service = app.service(serviceName)
+
+  // HACK if service.name is not set, fix it
+  if (service.name == null) {
+    service.name = serviceName
+  }
+
   const Model = Collection.meta.type
 
   return createActionCreators(service, Object.assign({
-    update: Model.update.bind(Model)
-  }, config)
+    cid: cuid
+  }, config))
 }
 
 function __createActionReducer (Collection, config) {
   const serviceName = Collection.meta.name
-  const service = app.service(serviceName)
+  const Model = Collection.meta.type
 
-  return createActionCreators(serviceName, Object.assign({
-    cid: cuid
-  }, config)
+  return createActionReducer(serviceName, Object.assign({
+    update: t.update
+  }, config))
 }
 
 function __createActionTypes (Collection) {
