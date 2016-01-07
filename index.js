@@ -1,6 +1,8 @@
-const createActionCreators = require('feathers-action-creators')
 const t = require('tcomb')
 const cuid = require('cuid')
+const createActionCreators = require('feathers-action-creators')
+const createActionTypes = require('feathers-action-types')
+const createActionReducer = require('feathers-action-reducer')
 
 module.exports = {
   createActionCreators: __createActionCreators,
