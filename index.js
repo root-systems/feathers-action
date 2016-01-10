@@ -3,6 +3,7 @@ const cuid = require('cuid')
 const createActionCreators = require('feathers-action-creators')
 const createActionTypes = require('feathers-action-types')
 const createActionReducer = require('feathers-action-reducer')
+const camelCase = require('camel-case')
 
 module.exports = {
   createActionCreators: __createActionCreators,
@@ -14,7 +15,7 @@ module.exports = {
 }
 
 function __createActionCreators (app, Collection, config) {
-  const serviceName = Collection.meta.name
+  const serviceName = camelCase(Collection.meta.name)
   const service = app.service(serviceName)
 
   // HACK if service.name is not set, fix it
@@ -30,7 +31,7 @@ function __createActionCreators (app, Collection, config) {
 }
 
 function __createActionReducer (Collection, config) {
-  const serviceName = Collection.meta.name
+  const serviceName = camelCase(Collection.meta.name)
   const Model = Collection.meta.type
 
   return createActionReducer(serviceName, Object.assign({
@@ -39,7 +40,7 @@ function __createActionReducer (Collection, config) {
 }
 
 function __createActionTypes (Collection) {
-  const serviceName = Collection.meta.name
+  const serviceName = camelCase(Collection.meta.name)
 
-  return __createActionTypes(Collection)
+  return __createActionTypes(serviceName)
 }
