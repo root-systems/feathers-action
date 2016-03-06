@@ -1,6 +1,6 @@
 {
   "name": "feathers-action",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "use feathers services with redux",
   "main": "index.js",
   "scripts": {
