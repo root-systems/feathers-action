@@ -1,7 +1,5 @@
 # feathers-action
 
-#### *work in progress*
-
 never write another CRUD redux action!
 
 this module helps you use [`feathers`](http://feathersjs.com), [`redux`](http://redux.js.org), and [`tcomb`](https://www.npmjs.com/package/tcomb).
@@ -44,8 +42,7 @@ module.exports = { Thing, Things }
 
 ```js
 // actions.js
-const createActionCreators = require('feathers-action').createActionCreators
-const client = require('./client')
+const createActions = require('feathers-action').createActions
 const Things = require('./types').Things
 
 const actions = createActions(client, Things)
@@ -65,24 +62,16 @@ const reducer = createReducer(Things)
 ```js
 // store.js
 const redux = require('redux')
-const thunk = require('redux-thunk')
+const createMiddleware = require('feathers-action').createMiddleware
 const reducer = require('./reducer')
+const client = require('./client')
 
 module.exports = createStore
 
-const createStoreWithMiddleware = redux.applyMiddleware(thunk)(redux.createStore)
-
 function createStore (initialState) {
-  return createStoreWithMiddlware(reducer, initialState)
+  const enhancer = redux.applyMiddleware(
+    createMiddleware(client)
+  )
+  return redux.createStore(reducer, initialState, enhancer)
 }
 ```
-
-## ecosystem
-
-`feathers-action` is composed of small modules for each part. if you have other opinions on how to join them together, feel free to do as you please! :)
-
-- [feathers-client](https://www.npmjs.com/package/feathers-client)
-- [feathers-action-types](https://www.npmjs.com/package/feathers-action-types)
-- [feathers-action-reducer](https://www.npmjs.com/package/feathers-action-reducer)
-- [feathers-action-creators](https://www.npmjs.com/package/feathers-action-creators)
-- [tcomb](https://www.npmjs.com/package/tcomb)
