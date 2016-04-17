@@ -1,9 +1,11 @@
+'use strict'
+
 const t = require('tcomb')
 const cuid = require('cuid')
-const createActionCreators = require('feathers-action-creators')
-const createActionTypes = require('feathers-action-types')
-const createActionReducer = require('feathers-action-reducer')
-const camelCase = require('camel-case')
+const camelCase = require('lodash/camelCase')
+const createActionCreators = require('./actions')
+const createActionTypes = require('./action-types')
+const createActionReducer = require('./reducer')
 
 module.exports = {
   createActionCreators: __createActionCreators,
