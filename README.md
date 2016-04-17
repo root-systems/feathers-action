@@ -1,88 +1,101 @@
 # feathers-action
 
-#### *work in progress*
-
-never write another CRUD redux action!
+> never write another CRUD redux action!
 
 this module helps you use [`feathers`](http://feathersjs.com), [`redux`](http://redux.js.org), and [`tcomb`](https://www.npmjs.com/package/tcomb).
 
-## install
-
-with [npm](https://www.npmjs.org):
-
-```shell
-npm install --save feathers-action
-```
-
-## usage
+## Usage
 
 ```js
-// client.js
-const feathers = require('feathers-client')
-const fetch = require('isomorphic-fetch')
+const feathersAction = require('feathers-action')
 
-const client = feathers()
-  .configure(feathers.fetch(fetch))
-
-module.exports = client
+console.log('hello warld')
 ```
 
-```js
-// types.js
-const t = require('tcomb')
+outputs
 
-const Thing = t.struct({
-  id: t.Number,
-  name: t.String,
-  description: t.String
+```
+hello warld
+```
+
+## API
+
+### const reducer = createReducer(opts={})
+Creates a new reducer to pass to `redux.createStore`.
+Valid `opts` keys include:
+- `Resource` (required) - A tcomb named list type describing the resource.
+
+eg:
+```js
+const { createReducer } = require('feathers-action')
+const Tc = require('tcomb')
+
+const Thing = Tc.struct({
+  id: Tc.maybe(Tc.Number),
+  name: Tc.String
+}, 'Thing')
+const Things = Tc.list(Thing, 'Things')
+
+const reducer = createReducer({Resource: Things})
+const store = createStore(reducer, {}, enhancer)
+```
+
+### const middleware = createMiddleware(opts={})
+Creates a new middleware to pass to `redux.createStore`.
+Valid `opts` keys include:
+- `client` (required) - the feathers client instance..
+
+eg:
+```js
+const { createMiddleware } = require('feathers-action')
+const { createStore, applyMiddleware } = require('redux')
+const feathers = require('feathers/client')
+
+const client = feathers().configure(...)
+
+const middleware = createMiddleware({ client })
+const enhancer = applyMiddleware(middleware) 
+const store = createStore(state => state, {}, enhancer)
+```
+
+### const actions = createActions(opts={})
+Creates a new set of actions for the `Resource` passed to `opts`.
+Valid `opts` keys include:
+- `Resource` (required) - a named `tcomb` list type.
+
+eg:
+```js
+const { createActions } = require('feathers-action')
+const Tc = require('tcomb')
+
+const Thing = Tc.struct({
+  id: Tc.maybe(Tc.Number),
+  name: Tc.String
 }, 'Thing')
 
-const Things = t.List(Thing, 'Things')
-
-module.exports = { Thing, Things }
+const Things = Tc.list(Thing, 'Things')
+const actions = createActions({ Resource: Things })
 ```
 
-```js
-// actions.js
-const createActionCreators = require('feathers-action').createActionCreators
-const client = require('./client')
-const Things = require('./types').Things
+## Install
 
-const actions = createActions(client, Things)
-// or actionCreators = createActionCreators(...)
+With [npm](https://npmjs.org/) installed, run
 
-module.exports = actions
+```
+$ npm install feathers-action --save
 ```
 
-```js
-// reducer.js
-const createReducer = require('feathers-action').createReducer
-const Things = require('./types').Things
+## Acknowledgments
 
-const reducer = createReducer(Things)
-```
+feathers-action was inspired by..
 
-```js
-// store.js
-const redux = require('redux')
-const thunk = require('redux-thunk')
-const reducer = require('./reducer')
+## See Also
 
-module.exports = createStore
+- redux
+- feathers
+- tcomb
 
-const createStoreWithMiddleware = redux.applyMiddleware(thunk)(redux.createStore)
+## License
 
-function createStore (initialState) {
-  return createStoreWithMiddlware(reducer, initialState)
-}
-```
+Apache-2.0
 
-## ecosystem
-
-`feathers-action` is composed of small modules for each part. if you have other opinions on how to join them together, feel free to do as you please! :)
-
-- [feathers-client](https://www.npmjs.com/package/feathers-client)
-- [feathers-action-types](https://www.npmjs.com/package/feathers-action-types)
-- [feathers-action-reducer](https://www.npmjs.com/package/feathers-action-reducer)
-- [feathers-action-creators](https://www.npmjs.com/package/feathers-action-creators)
-- [tcomb](https://www.npmjs.com/package/tcomb)
