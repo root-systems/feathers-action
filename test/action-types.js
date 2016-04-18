@@ -2,81 +2,81 @@
 
 const test = require('tape')
 const createActionTypes = require('../src/action-types')
+const createActionType = createActionTypes.createActionType
+
+const Resource = require('./types').Resource
 
 test('returns the action names', function (t) {
-  const names = createActionTypes('users')
+  const names = createActionTypes({ Resource })
 
-  t.equal(names.USERS_FIND_START, 'USERS_FIND_START')
-  t.equal(names.USERS_FIND_SUCCESS, 'USERS_FIND_SUCCESS')
-  t.equal(names.USERS_FIND_ERROR, 'USERS_FIND_ERROR')
+  t.equal(names.THINGS_FIND_START, 'THINGS_FIND_START')
+  t.equal(names.THINGS_FIND_SUCCESS, 'THINGS_FIND_SUCCESS')
+  t.equal(names.THINGS_FIND_ERROR, 'THINGS_FIND_ERROR')
 
-  t.equal(names.USERS_GET_START, 'USERS_GET_START')
-  t.equal(names.USERS_GET_SUCCESS, 'USERS_GET_SUCCESS')
-  t.equal(names.USERS_GET_ERROR, 'USERS_GET_ERROR')
+  t.equal(names.THINGS_GET_START, 'THINGS_GET_START')
+  t.equal(names.THINGS_GET_SUCCESS, 'THINGS_GET_SUCCESS')
+  t.equal(names.THINGS_GET_ERROR, 'THINGS_GET_ERROR')
 
-  t.equal(names.USERS_CREATE_START, 'USERS_CREATE_START')
-  t.equal(names.USERS_CREATE_SUCCESS, 'USERS_CREATE_SUCCESS')
-  t.equal(names.USERS_CREATE_ERROR, 'USERS_CREATE_ERROR')
+  t.equal(names.THINGS_CREATE_START, 'THINGS_CREATE_START')
+  t.equal(names.THINGS_CREATE_SUCCESS, 'THINGS_CREATE_SUCCESS')
+  t.equal(names.THINGS_CREATE_ERROR, 'THINGS_CREATE_ERROR')
 
-  t.equal(names.USERS_UPDATE_START, 'USERS_UPDATE_START')
-  t.equal(names.USERS_UPDATE_SUCCESS, 'USERS_UPDATE_SUCCESS')
-  t.equal(names.USERS_UPDATE_ERROR, 'USERS_UPDATE_ERROR')
+  t.equal(names.THINGS_UPDATE_START, 'THINGS_UPDATE_START')
+  t.equal(names.THINGS_UPDATE_SUCCESS, 'THINGS_UPDATE_SUCCESS')
+  t.equal(names.THINGS_UPDATE_ERROR, 'THINGS_UPDATE_ERROR')
 
-  t.equal(names.USERS_PATCH_START, 'USERS_PATCH_START')
-  t.equal(names.USERS_PATCH_SUCCESS, 'USERS_PATCH_SUCCESS')
-  t.equal(names.USERS_PATCH_ERROR, 'USERS_PATCH_ERROR')
+  t.equal(names.THINGS_PATCH_START, 'THINGS_PATCH_START')
+  t.equal(names.THINGS_PATCH_SUCCESS, 'THINGS_PATCH_SUCCESS')
+  t.equal(names.THINGS_PATCH_ERROR, 'THINGS_PATCH_ERROR')
 
-  t.equal(names.USERS_REMOVE_START, 'USERS_REMOVE_START')
-  t.equal(names.USERS_REMOVE_SUCCESS, 'USERS_REMOVE_SUCCESS')
-  t.equal(names.USERS_REMOVE_ERROR, 'USERS_REMOVE_ERROR')
+  t.equal(names.THINGS_REMOVE_START, 'THINGS_REMOVE_START')
+  t.equal(names.THINGS_REMOVE_SUCCESS, 'THINGS_REMOVE_SUCCESS')
+  t.equal(names.THINGS_REMOVE_ERROR, 'THINGS_REMOVE_ERROR')
 
   t.end()
 })
 
 test('returns aliases', function (t) {
-  const names = createActionTypes('users')
+  const names = createActionTypes({ Resource })
 
-  t.equal(names.findStart, 'USERS_FIND_START')
-  t.equal(names.findSuccess, 'USERS_FIND_SUCCESS')
-  t.equal(names.findError, 'USERS_FIND_ERROR')
+  t.equal(names.findStart, 'THINGS_FIND_START')
+  t.equal(names.findSuccess, 'THINGS_FIND_SUCCESS')
+  t.equal(names.findError, 'THINGS_FIND_ERROR')
 
-  t.equal(names.getStart, 'USERS_GET_START')
-  t.equal(names.getSuccess, 'USERS_GET_SUCCESS')
-  t.equal(names.getError, 'USERS_GET_ERROR')
+  t.equal(names.getStart, 'THINGS_GET_START')
+  t.equal(names.getSuccess, 'THINGS_GET_SUCCESS')
+  t.equal(names.getError, 'THINGS_GET_ERROR')
 
-  t.equal(names.createStart, 'USERS_CREATE_START')
-  t.equal(names.createSuccess, 'USERS_CREATE_SUCCESS')
-  t.equal(names.createError, 'USERS_CREATE_ERROR')
+  t.equal(names.createStart, 'THINGS_CREATE_START')
+  t.equal(names.createSuccess, 'THINGS_CREATE_SUCCESS')
+  t.equal(names.createError, 'THINGS_CREATE_ERROR')
 
-  t.equal(names.updateStart, 'USERS_UPDATE_START')
-  t.equal(names.updateSuccess, 'USERS_UPDATE_SUCCESS')
-  t.equal(names.updateError, 'USERS_UPDATE_ERROR')
+  t.equal(names.updateStart, 'THINGS_UPDATE_START')
+  t.equal(names.updateSuccess, 'THINGS_UPDATE_SUCCESS')
+  t.equal(names.updateError, 'THINGS_UPDATE_ERROR')
 
-  t.equal(names.patchStart, 'USERS_PATCH_START')
-  t.equal(names.patchSuccess, 'USERS_PATCH_SUCCESS')
-  t.equal(names.patchError, 'USERS_PATCH_ERROR')
+  t.equal(names.patchStart, 'THINGS_PATCH_START')
+  t.equal(names.patchSuccess, 'THINGS_PATCH_SUCCESS')
+  t.equal(names.patchError, 'THINGS_PATCH_ERROR')
 
-  t.equal(names.removeStart, 'USERS_REMOVE_START')
-  t.equal(names.removeSuccess, 'USERS_REMOVE_SUCCESS')
-  t.equal(names.removeError, 'USERS_REMOVE_ERROR')
+  t.equal(names.removeStart, 'THINGS_REMOVE_START')
+  t.equal(names.removeSuccess, 'THINGS_REMOVE_SUCCESS')
+  t.equal(names.removeError, 'THINGS_REMOVE_ERROR')
 
   t.end()
 })
 
 test('it handles different cases', function (t) {
-  let names
-
-  names = createActionTypes('superUsers')
-  t.equal(names.findStart, 'SUPER_USERS_FIND_START')
-
-  names = createActionTypes('super-users')
-  t.equal(names.findStart, 'SUPER_USERS_FIND_START')
-
-  names = createActionTypes('super_users')
-  t.equal(names.findStart, 'SUPER_USERS_FIND_START')
-
-  names = createActionTypes('super users')
-  t.equal(names.findStart, 'SUPER_USERS_FIND_START')
-
+  ;[
+    'SuperThings',
+    'super-things',
+    'super_things',
+    'super things'
+  ].forEach(function (name) {
+    t.equal(
+      createActionType(name, 'find', 'start'),
+      'SUPER_THINGS_FIND_START'
+    )
+  })
   t.end()
 })

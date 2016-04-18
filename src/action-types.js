@@ -1,25 +1,34 @@
 'use strict'
 
-const capitalize = require('lodash/capitalize')
-const constantCase = require('constant-case')
 const constants = require('./constants')
+const Tc = require('tcomb')
 
-module.exports = createActionTypes
-module.exports.createActionType = createActionType
+const util = require('./util')
+const types = require('./types')
 
 function createActionType (resource, method, section) {
-  var RESOURCE = constantCase(resource)
-  var GROUP = constantCase(group)
-  var SECTION = constantCase(section)
-
-  return `${RESOURCE}_${METHOD}_${SECTION}`
+  return util.toConstantCase(resource, method, section)
 }
 
 function createActionAlias (method, section) {
-  var Section = capitalize(section)
-
-  return `${method}${Section}`
+  return util.toCamelCase(method, section)
 }
+
+const Options = Tc.struct({
+  Resource: types.ResourceType,
+  alias: Tc.maybe(Tc.Boolean),
+  methods: Tc.maybe(Tc.list(Tc.String)),
+  sections: Tc.maybe(Tc.list(Tc.String))
+})
+
+const ActionTypes = Tc.dict(
+  Tc.String, Tc.String, 'ActionTypes'
+)
+
+module.exports = Tc.func(
+  Options, ActionTypes, 'createActionTypes'
+).of(createActionTypes)
+module.exports.createActionType = createActionType
 
 /*
  * Given a resource name, returns respective feathers action types.
@@ -52,24 +61,26 @@ function createActionAlias (method, section) {
  * //   removeError: USERS_REMOVE_ERROR,
  * // }
  * ```
- * @param {String} `resource`
- * @return {Object} `actionTypes`
- * @api public
  */
-function createActionTypes (resource, methods, sections) {
-  if (methods == null) {
-    methods = constants.METHODS
-  } else if (sections == null) {
-    sections = constants.SECTIONS
-  }
+function createActionTypes (options) {
+  options = util.setDefaults(Options, options, {
+    alias: true,
+    methods: constants.METHODS,
+    sections: constants.SECTIONS
+  })
+
+  const resourceName = options.Resource.meta.name
 
   var actionTypes = {}
-  methods.forEach(function (method) {
-    sections.forEach(function (section) {
-      const actionType = createActionType(resource, method, section)
-      const actionAlias = createActionAlias(method, section)
+  options.methods.forEach(function (method) {
+    options.sections.forEach(function (section) {
+      const actionType = createActionType(resourceName, method, section)
       actionTypes[actionType] = actionType
-      actionTypes[actionAlias] = actionType
+
+      if (options.alias) {
+        const actionAlias = createActionAlias(method, section)
+        actionTypes[actionAlias] = actionType
+      }
     })
   })
   return actionTypes

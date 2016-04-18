@@ -2,24 +2,39 @@
 
 const isArray = Array.isArray
 const Tc = require('tcomb')
-const camelCase = require('lodash/camelCase')
-const createAction = require('redux-actions').createAction
+const reduce = require('lodash/reduce')
+const assign = require('lodash/assign')
+const values = require('lodash/values')
+const pick = require('lodash/pick')
+const mapValues = require('lodash/mapValues')
+const endsWith = require('lodash/endsWith')
+const words = require('lodash/words')
 
 const FEATHERS_ACTION = require('./constants').FEATHERS_ACTION
 const createActionTypes = require('./action-types')
 const constants = require('./constants')
 const types = require('./types')
+const util = require('./util')
 
-const Cid = types.Cid
 const Params = types.Params
+const Meta = types.Meta
+const toCap = util.toCapitalCase
+const toCam = util.toCamelCase
+
+const asyncArgs = {
+  find: (params) => ({ params }),
+  get: (id, params) => ({ id, params }),
+  create: (data, params) => ({ data, params }),
+  update: (id, data, params) => ({ id, data, params }),
+  patch: (id, data, params) => ({ id, data, params }),
+  remove: (id, params) => ({ id, params }),
+}
 
 const Options = Tc.struct({
   Resource: types.ResourceType,
   idField: Tc.maybe(Tc.String),
   idType: Tc.maybe(Tc.Type),
-  metaCreators: Tc.maybe(
-    Tc.dict(Tc.String, Tc.Function, 'MetaCreators')
-  ),
+  methods: Tc.maybe(Tc.list(Tc.String)),
 }, 'Options')
 
 const ActionCreators = Tc.dict(Tc.String, Tc.Function, 'ActionCreators')
@@ -27,236 +42,154 @@ const ActionCreators = Tc.dict(Tc.String, Tc.Function, 'ActionCreators')
 module.exports = Tc.func(Options, ActionCreators).of(createActionCreators)
 
 function createActionCreators (options) {
+  options = util.setDefaults(Options, options, {
+    idField: constants.DEFAULT_ID_FIELD,
+    idType: types.Id,
+    methods: constants.METHODS,
+  })
+
   const Resource = options.Resource
   const Entity = Resource.meta.type
-  const idField = options.idField || constants.DEFAULT_ID_FIELD
-  const Id = options.idType || types.Id
-  const metaCreators = options.metaCreators || {}
+  const idField = options.idField
+  const Id = options.idType
 
-  const serviceName = camelCase(resource.meta.name)
-  const actionTypes = createActionTypes(serviceName)
-
-  const Data = Model
+  const Data = Entity
   const SingleResult = Entity
   const ManyResults = Resource
 
-  const BaseAction = Tc.struct({
-    service: Tc.String,
-    method: Tc.String
+  const service = toCam(Resource.meta.name)
+  const BasePayload = Tc.struct({
+    service: Tc.enums.of([service])
   })
 
-  const Actions = {
-    find: BaseAction.extend({
-      params: Params
-    }),
-    findStart: BaseAction.extend({
-      params: Params
-    }),
-    findSuccess: BaseAction.extend({
-
-    })
+  const baseMethods = {
+    find: [{
+      params: Params,
+    }, ManyResults],
+    get: [{
+      id: Id,
+      params: Params,
+    }, SingleResult],
+    create: [{
+      data: Data,
+      params: Params,
+    }, SingleResult],
+    update: [{
+      id: Id,
+      data: Data,
+      params: Params,
+    }, SingleResult],
+    patch: [{
+      id: Id,
+      data: Data,
+      params: Params,
+    }, SingleResult],
+    remove: [{
+      id: Id,
+      params: Params,
+    }, Tc.Nil],
   }
 
-  return {
-
-    find: createAction(
-      FEATHERS_ACTION,
-      (params) => asyncHelper('find', { params }),
-      metaCreators.find
-    ),
-
-    findStart: createAction(
-      actionTypes.findStart,
-      (cid, params) => ({ cid, params }),
-      metaCreators.findStart
-    ),
-
-    findSuccess: createAction(
-      actionTypes.findSuccess,
-      manyEntitiesHandler('findSuccess'),
-      metaCreators.findSuccess
-    ),
-
-    findError: createAction(
-      actionTypes.findError,
-      errorHandler('findError'),
-      metaCreators.findError
-    ),
-
-    get: createAction(
-      FEATHERS_ACTION,
-      (id, params) => asyncHelper('get', { id, params }),
-      metaCreators.get
-    ),
-
-    getStart: createAction(
-      actionTypes.getStart,
-      (cid, id, params) => ({ cid, id, params }),
-      metaCreators.getStart
-    ),
-
-    getSuccess: createAction(
-      actionTypes.getSuccess,
-      oneEntityHandler('getSuccess'),
-      metaCreators.getSuccess
-    ),
-
-    getError: createAction(
-      actionTypes.getError,
-      errorHandler('getError'),
-      metaCreators.getError
-    ),
-
-    create: createAction(
-      FEATHERS_ACTION,
-      (data, params) => asyncHelper('create', { data, params }),
-      metaCreators.create
-    ),
-
-    createStart: createAction(
-      actionTypes.createStart,
-      (cid, data, params) => ({ cid, data, params }),
-      metaCreators.createStart
-    ),
-
-    createSuccess: createAction(
-      actionTypes.createSuccess,
-      oneEntityHandler('createSuccess'),
-      metaCreators.createSuccess
-    ),
-
-    createError: createAction(
-      actionTypes.createError,
-      errorHandler('createError'),
-      metaCreators.createError
-    ),
-
-    update: createAction(
-      FEATHERS_ACTION,
-      (id, data, params) => asyncHelper('update', { id, data, params }),
-      metaCreators.update
-    ),
-
-    updateStart: createAction(
-      actionTypes.updateStart,
-      (cid, id, data, params) => ({ cid, id, data, params }),
-      metaCreators.updateStart
-    ),
-
-    updateSuccess: createAction(
-      actionTypes.updateSuccess,
-      oneEntityHandler('updateSuccess'),
-      actionTypes.updateSuccess
-    ),
-
-    updateError: createAction(
-      actionTypes.updateError,
-      errorHandler('updateError'),
-      metaCreators.updateError
-    ),
-
-    patch: createAction(
-      FEATHERS_ACTION,
-      (id, data, params) => asyncHelper('patch', { id, data, params }),
-      metaCreators.patch
-    ),
-
-    patchStart: createAction(
-      actionTypes.patchStart,
-      (cid, id, data, params) => ({ cid, id, data, params }),
-      metaCreators.patchStart
-    ),
-
-    patchSuccess: createAction(
-      actionTypes.patchSuccess,
-      oneEntityHandler('patchSuccess'),
-      metaCreators.patchSuccess
-    ),
-
-    patchError: createAction(
-      actionTypes.patchError,
-      errorHandler('patchError'),
-      metaCreators.patchError
-    ),
-
-    remove: createAction(
-      FEATHERS_ACTION,
-      (id, params) => asyncHelper('remove', { id, params }),
-      metaCreators.remove
-    ),
-
-    removeStart: createAction(
-      actionTypes.removeStart,
-      (cid, id, params) => ({ cid, id, params }),
-      metaCreators.removeStart
-    ),
-
-    removeSuccess: createAction(
-      actionTypes.removeSuccess,
-      oneEntityHandler('removeSuccess'),
-      metaCreators.removeSuccess
-    ),
-
-    removeError: createAction(
-      actionTypes.removeError,
-      errorHandler('removeError'),
-      metaCreators.removeError
-    )
-  }
-
-  function StartAction = Tc.struct({
-    params: Tc.maybe(Tc.Object),
+  const actionTypes = createActionTypes({
+    Resource, methods: options.methods
   })
 
-  const Actions = {
-    [actionTypes.findStart]
-  }
+  // TODO clean up repeated code below
+  // maybe iterate through methods and sections
+  // like ./action-types.js ?
+  const actionCtors = reduce(
+    pick(baseMethods, options.methods),
+    function (sofar, args, name) {
+      const props = args[0]
+      const result = args[1]
 
+      const MethodPayload = BasePayload.extend({
+        method: Tc.enums.of([name])
+      })
 
-  function asyncHelper (method, payload) {
-    return Object.assign({ service: serviceName, method }, payload)
-  }
+      const asyncActionAlias = toCam(name)
+      const asyncActionName = toCap(name)
+      const asyncActionPayloadName = toCap(name, 'payload')
+      const asyncActionType = actionTypes[asyncActionAlias]
 
-  function oneEntityHandler (actionCreatorName) {
-    return function (body, startPayload) {
-      assertOneEntity(actionCreatorName, body)
-      return Object.assign({ body }, startPayload)
+      sofar[asyncActionAlias] = Tc.struct({
+        type: Tc.enums.of([FEATHERS_ACTION]),
+        payload: MethodPayload.extend(props, asyncActionPayloadName),
+      }, asyncActionName)
+
+      const startActionAlias = toCam(name, 'start')
+      const startActionName = toCap(name, 'start')
+      const startActionPayloadName = toCap(name, 'start', 'payload')
+      const startActionType = actionTypes[startActionAlias]
+
+      sofar[startActionAlias] = Tc.struct({
+        type: Tc.enums.of([startActionType]),
+        payload: MethodPayload.extend(props, startActionPayloadName),
+        meta: Meta,
+      }, startActionName)
+
+      const successActionAlias = toCam(name, 'success')
+      const successActionName = toCap(name, 'success')
+      const successActionPayloadName = toCap(name, 'success', 'payload')
+      const successActionType = actionTypes[successActionAlias]
+
+      sofar[successActionAlias] = Tc.struct({
+        type: Tc.enums.of([successActionType]),
+        payload: MethodPayload.extend(
+          assign({ result }, props, {}),
+          successActionPayloadName
+        ),
+        meta: Meta,
+      }, successActionName)
+
+      const errorActionAlias = toCam(name, 'error')
+      const errorActionName = toCap(name, 'error')
+      const errorActionPayloadName = toCap(name, 'error', 'payload')
+      const errorActionType = actionTypes[errorActionAlias]
+
+      sofar[errorActionAlias] = Tc.struct({
+        type: Tc.enums.of([errorActionType]),
+        payload: Tc.Error,
+        error: Tc.enums.of([true]),
+        meta: Meta,
+      }, errorActionName)
+      
+      return sofar
+    },
+    {}
+  )
+
+  const actionCreators = mapValues(actionCtors, (actionCtor, name) => {
+    const type = actionTypes[name]
+    const method = words(name)[0]
+    if (name in asyncArgs) {
+      return function () {
+        const getArgs = asyncArgs[name]
+        const payload = getArgs.apply(null, arguments)
+        return actionCtor({
+          type: FEATHERS_ACTION,
+          payload: assign({}, payload, { service, method })
+        })
+      }
+    } else if (endsWith(name, 'Error')) {
+      return function (cid, payload) {
+        return actionCtor({
+          type,
+          payload: assign({}, payload, { service, method }),
+          error: true,
+          meta: { cid },
+        })
+      }
+    } else {
+      return function (cid, payload) {
+        return actionCtor({
+          type,
+          payload: assign({}, payload, { service, method }),
+          meta: { cid },
+        })
+      }
     }
-  }
+  })
 
-  function manyEntitiesHandler (actionCreatorName) {
-    return function (body, startPayload) {
-      assertManyEntities(actionCreatorName, body)
-      return Object.assign({ body }, startPayload)
-    }
-  }
-
-  function errorHandler (actionCreatorName) {
-    return function (error, startPayload) {
-      assertError(actionCreatorName, error)
-      return Object.assign(error, startPayload)
-    }
-  }
-
-  function assertError (actionCreatorName, error) {
-    Tc.assert(error != null, `Expected error in ${actionCreatorName}`)
-  }
-
-  function assertBody (actionCreatorName, body) {
-    Tc.assert(body != null, `Expected body in ${actionCreatorName}`)
-  }
-
-  function assertOneEntity (actionCreatorName, body) {
-    assertBody(actionCreatorName, body)
-    Tc.assert(typeof body === 'object', `Expected one entity in ${actionCreatorName})`)
-    Tc.assert(body[key] != null, `Expected entity.${key} in ${actionCreatorName}`)
-  }
-
-  function assertManyEntities (actionCreatorName, body) {
-    assertBody(actionCreatorName, body)
-    Tc.assert(isArray(body), `Expected many entities in ${actionCreatorName}`)
-    body.forEach(function (entity) {
-      assertOneEntity(actionCreatorName, entity)
-    })
-  }
+  return actionCreators
 }
