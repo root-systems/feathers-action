@@ -11,15 +11,15 @@ const endsWith = require('lodash/endsWith')
 const words = require('lodash/words')
 
 const FEATHERS_ACTION = require('./constants').FEATHERS_ACTION
-const createActionTypes = require('./action-types')
+const createActionIds = require('./action-ids')
 const constants = require('./constants')
 const types = require('./types')
 const util = require('./util')
 
 const Params = types.Params
 const Meta = types.Meta
-const toCap = util.toCapitalCase
-const toCam = util.toCamelCase
+const toCapitalCase = util.toCapitalCase
+const toCamelCase = util.toCamelCase
 
 const asyncArgs = {
   find: (params) => ({ params }),
@@ -48,50 +48,85 @@ function createActionCreators (options) {
     methods: constants.METHODS,
   })
 
+  const payloadTypes = createPayloadTypes(options)
+  const actionIds = createActionIds(options)
+
   const Resource = options.Resource
-  const Entity = Resource.meta.type
-  const idField = options.idField
-  const Id = options.idType
+  const service = toCamelCase(Resource.meta.name)
 
-  const Data = Entity
-  const SingleResult = Entity
-  const ManyResults = Resource
+  const actionCreatorTypes = mapValues(actionIds, function (sections, method) {
+    const base = payloadBase[method]
 
-  const service = toCam(Resource.meta.name)
-  const BasePayload = Tc.struct({
-    service: Tc.enums.of([service])
+    return mapValues(sections, function (actionId, section) {
+      const name = toCapitalCase(service, method, section)
+      const payload = payloads[method][section]
+
+      switch (section) {
+        'async':
+          return Tc.struct({
+            type: Tc.enums.of([actionId]),
+            payload: payloads[key],
+          }, name)
+        'start':
+        'success':
+          return Tc.struct({
+            type: Tc.enums.of([actionId]),
+            payload: payloads[key],
+            meta: Meta,
+          }, name)
+        'error':
+          return Tc.struct({
+            type: Tc.enums.of([actionId])
+            payload: payloads[key],
+            meta: Meta,
+            error: Tc.enums.of([true]),
+          }, name)
+      }
+    })
   })
 
-  const baseMethods = {
-    find: [{
-      params: Params,
-    }, ManyResults],
-    get: [{
-      id: Id,
-      params: Params,
-    }, SingleResult],
-    create: [{
-      data: Data,
-      params: Params,
-    }, SingleResult],
-    update: [{
-      id: Id,
-      data: Data,
-      params: Params,
-    }, SingleResult],
-    patch: [{
-      id: Id,
-      data: Data,
-      params: Params,
-    }, SingleResult],
-    remove: [{
-      id: Id,
-      params: Params,
-    }, Tc.Nil],
-  }
+  const sugarActionCreators = 
 
-  const actionTypes = createActionTypes({
-    Resource, methods: options.methods
+  const actionCreators = mapValues(serviceActionCreators, function (methodActionCreators, method) {
+
+    return mapValues(methodActionCreators, function (actionCreator, section) {
+      switch (section) {
+        case 'async':
+          return function () {
+            const getArgs = asyncArgs[name]
+            const payload = getArgs.apply(null, arguments)
+            return actionCtor({
+              type: FEATHERS_ACTION,
+              payload: assign({}, payload, { service, method })
+            })
+          }
+      }
+      const actionId = createActionId(service, method, section)
+      
+
+    })
+    const actionId = actionIds[name]
+    if (name in asyncArgs) {
+      return function () {
+      }
+    } else if (endsWith(name, 'Error')) {
+      return function (cid, payload) {
+        return actionCtor({
+          type: actionId,
+          payload: assign({}, payload, { service, method }),
+          error: true,
+          meta: { cid },
+        })
+      }
+    } else {
+      return function (cid, payload) {
+        return actionCtor({
+          type: actionId,
+          payload: assign({}, payload, { service, method }),
+          meta: { cid },
+        })
+      }
+    }
   })
 
   // TODO clean up repeated code below
@@ -110,7 +145,7 @@ function createActionCreators (options) {
       const asyncActionAlias = toCam(name)
       const asyncActionName = toCap(name)
       const asyncActionPayloadName = toCap(name, 'payload')
-      const asyncActionType = actionTypes[asyncActionAlias]
+      const asyncActionType = actionIds[asyncActionAlias]
 
       sofar[asyncActionAlias] = Tc.struct({
         type: Tc.enums.of([FEATHERS_ACTION]),
@@ -120,7 +155,7 @@ function createActionCreators (options) {
       const startActionAlias = toCam(name, 'start')
       const startActionName = toCap(name, 'start')
       const startActionPayloadName = toCap(name, 'start', 'payload')
-      const startActionType = actionTypes[startActionAlias]
+      const startActionType = actionIds[startActionAlias]
 
       sofar[startActionAlias] = Tc.struct({
         type: Tc.enums.of([startActionType]),
@@ -131,7 +166,7 @@ function createActionCreators (options) {
       const successActionAlias = toCam(name, 'success')
       const successActionName = toCap(name, 'success')
       const successActionPayloadName = toCap(name, 'success', 'payload')
-      const successActionType = actionTypes[successActionAlias]
+      const successActionType = actionIds[successActionAlias]
 
       sofar[successActionAlias] = Tc.struct({
         type: Tc.enums.of([successActionType]),
@@ -145,7 +180,7 @@ function createActionCreators (options) {
       const errorActionAlias = toCam(name, 'error')
       const errorActionName = toCap(name, 'error')
       const errorActionPayloadName = toCap(name, 'error', 'payload')
-      const errorActionType = actionTypes[errorActionAlias]
+      const errorActionType = actionIds[errorActionAlias]
 
       sofar[errorActionAlias] = Tc.struct({
         type: Tc.enums.of([errorActionType]),
@@ -159,37 +194,6 @@ function createActionCreators (options) {
     {}
   )
 
-  const actionCreators = mapValues(actionCtors, (actionCtor, name) => {
-    const type = actionTypes[name]
-    const method = words(name)[0]
-    if (name in asyncArgs) {
-      return function () {
-        const getArgs = asyncArgs[name]
-        const payload = getArgs.apply(null, arguments)
-        return actionCtor({
-          type: FEATHERS_ACTION,
-          payload: assign({}, payload, { service, method })
-        })
-      }
-    } else if (endsWith(name, 'Error')) {
-      return function (cid, payload) {
-        return actionCtor({
-          type,
-          payload: assign({}, payload, { service, method }),
-          error: true,
-          meta: { cid },
-        })
-      }
-    } else {
-      return function (cid, payload) {
-        return actionCtor({
-          type,
-          payload: assign({}, payload, { service, method }),
-          meta: { cid },
-        })
-      }
-    }
-  })
 
   return actionCreators
 }

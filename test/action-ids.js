@@ -1,13 +1,13 @@
 'use strict'
 
 const test = require('tape')
-const createActionTypes = require('../src/action-types')
-const createActionType = createActionTypes.createActionType
+const createActionIds = require('../src/action-ids')
+const createActionId = createActionIds.createActionId
 
 const Resource = require('./types').Resource
 
 test('returns the action names', function (t) {
-  const names = createActionTypes({ Resource })
+  const names = createActionIds({ Resource })
 
   t.equal(names.THINGS_FIND_START, 'THINGS_FIND_START')
   t.equal(names.THINGS_FIND_SUCCESS, 'THINGS_FIND_SUCCESS')
@@ -37,7 +37,7 @@ test('returns the action names', function (t) {
 })
 
 test('returns aliases', function (t) {
-  const names = createActionTypes({ Resource })
+  const names = createActionIds({ Resource })
 
   t.equal(names.findStart, 'THINGS_FIND_START')
   t.equal(names.findSuccess, 'THINGS_FIND_SUCCESS')
@@ -74,7 +74,7 @@ test('it handles different cases', function (t) {
     'super things'
   ].forEach(function (name) {
     t.equal(
-      createActionType(name, 'find', 'start'),
+      createActionId(name, 'find', 'start'),
       'SUPER_THINGS_FIND_START'
     )
   })

@@ -3,46 +3,48 @@
 const handleActions = require('redux-actions').handleActions
 const mapValues = require('lodash/mapValues')
 
+const createActionPayloadType = require('./types').createActionPayloadType
 const createActionTypes = require('./action-types')
 const Resource = require('./types').Resource
 const constants = require('./constants')
 
 const Options = Tc.struct({
-  resource: Resource,
-  key: Tc.maybe(Tc.String)
+  Resource: types.ResourceType,
+  idField: Tc.String,
+  methods: Tc.maybe(Tc.list(Tc.String)),
 }, 'Options')
 
 const Reducer = Tc.Function
 
-module.exports = Tc.func(Options, Reducer).of(createReducer)
+module.exports = Tc.func(
+  Options, Reducer,'createReducer'
+).of(createActionTypes)
 
-module.exports = createReducers
+module.exports = createReducer
 
-function createReducers (serviceName, config) {
-  if (serviceName == null) {
-    throw new Error('feathers-action-reducers: Expected serviceName as first argument.')
-  }
-  if (config == null) {
-    throw new Error('feathers-action-reducers: Expected config as second argument.')
-  }
+function createActionTypes (options) {
 
-  config = config || {}
-  const key = config.key || constants.DEFAULT_KEY
 
-  const actionTypes = createActionTypes(serviceName)
-
-  const Error = Tc.struct({
-    
+function createReducers (options) {
+  options = util.setDefaults(Options, options, {
+    methods: constants.METHODS,
+    sections: constants.SECTIONS,
+    idField: constants.DEFAULT_ID_FIELD,
   })
 
-  const PendingAction = Tc.struct({
+  const actionTypes = createActionTypes(options)
+  const payloads = createActionPayloadType(options)
 
-  })
+  const Records = Tc.dict(Id, Data)
+  const Pending = Tc.dict(Cid, StartPayload)
+  const Success = Tc.dict(Cid, SuccessPayload)
+  const Error = Tc.dict(Cid, ErrorPayload)
 
   const State = Tc.struct({
-    records: Tc.dict(Tc.String, model, ),
-    errors: Tc.dict(Id, Errors)
-    pending: Pending
+    records: Data,
+    pending: Pending,
+    success: Success,
+    error: Error,
   })
 
   const specCreators = {
@@ -165,7 +167,7 @@ function createReducers (serviceName, config) {
 
   const actionHandlers = mapValues(specCreators, (specCreator) => {
     return function (state, action) {
-      return update(state, specCreator(action))
+      return State.update(state, specCreator(action))
     }
   })
 
