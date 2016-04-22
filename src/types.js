@@ -1,4 +1,17 @@
 const Tc = require('tcomb')
+const Symbol = require('es-symbol')
+
+const isSymbol = function (symbol) {
+  return symbol && (
+    // es6 symbol check
+    typeof symbol === 'symbol' ||
+    // es-symbol check
+    // https://github.com/goatslacker/es-symbol/blob/master/src/symbol.js#L17-L19
+    (symbol[Symbol.toStringTag] === 'Symbol')
+  )
+}
+
+const SymbolType = Tc.irreducible('Symbol', isSymbol)
 
 const TypeWithName = Tc.refinement(
   Tc.Type,
@@ -12,6 +25,13 @@ const ResourceType = Tc.refinement(
   'ResourceType (tcomb.list with name)'
 )
 
+const Methods = Tc.list(Tc.String)
+
+const Options = Tc.struct({
+  Resource: ResourceType,
+  methods: Tc.maybe(Methods)
+})
+
 const Id = Tc.union([Tc.String, Tc.Number], 'Id')
 const Params = Tc.maybe(Tc.Object)
 
@@ -20,8 +40,11 @@ const Meta = Tc.struct({
   cid: Cid
 })
 
+
 module.exports = {
+  Symbol: SymbolType,
   ResourceType,
+  Options,
   Id,
   Cid,
   Params,

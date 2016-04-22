@@ -25,17 +25,26 @@ test('creates actions', function (t) {
     }
   })
 
+  t.deepEqual(actions.find.call({
+    params: { query } }
+  ), {
+    type: FEATHERS_ACTION,
+    payload: {
+      service: 'things',
+      method: 'find',
+      params: { query }
+    }
+  })
+
   const startCid = cuid()
   t.deepEqual(
-    actions.findStart(startCid, {
+    actions.find.start(startCid, {
       params: { query }
     }),
     {
       type: 'THINGS_FIND_START',
       payload: {
-        service: 'things',
-        method: 'find',
-        params: { query },
+        params: { query }
       },
       meta: { cid: startCid },
     }
@@ -47,18 +56,10 @@ test('creates actions', function (t) {
     Thing({ id: 2, name: 'computer' }),
   ]
   t.deepEqual(
-    actions.findSuccess(successCid, {
-      params: { query },
-      result: successResult,
-    }),
+    actions.find.success(successCid, successResult),
     {
       type: 'THINGS_FIND_SUCCESS',
-      payload: {
-        service: 'things',
-        method: 'find',
-        params: { query },
-        result: successResult
-      },
+      payload: successResult,
       meta: { cid: successCid },
     }
   )

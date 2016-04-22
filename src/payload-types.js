@@ -1,54 +1,69 @@
+'use strict'
+
 const Tc = require('tcomb')
+const mapValues = require('lodash/mapValues')
+const assign = require('lodash/assign')
+
+const createActionIds = require('./action-ids')
 const util = require('./util')
+const types = require('./types')
+const constants = require('./constants')
 
 const toCamelCase = util.toCamelCase
 const toCapitalCase = util.toCapitalCase
+const Params = types.Params
 
-const Options = Tc.struct({
-  Resource: types.ResourceType,
+const Options = types.Options.extend({
   idField: Tc.maybe(Tc.String),
-  idType: Tc.maybe(Tc.Type),
-  methods: Tc.maybe(Tc.list(Tc.String)),
-}, 'Options')
+  idType: Tc.maybe(Tc.Type)
+}, 'CreatePayloadTypeOptions')
 
-module.exports = Tc.func(Options, ActionCreators).of(createPayloadTypes)
+const PayloadTypes = Tc.dict(
+  Tc.String, Tc.dict(Tc.String, Tc.Type),
+'ActionCreatorTypes')
+
+module.exports = Tc.func(
+  Options, PayloadTypes, 'createPayloadTypes'
+).of(createPayloadTypes)
 
 function createPayloadTypes (options) {
   options = util.setDefaults(Options, options, {
     idField: constants.DEFAULT_ID_FIELD,
-    idType: types.Id,
-    methods: constants.METHODS,
+    idType: types.Id
   })
 
+  const actionIds = createActionIds(options)
+
   const Resource = options.Resource
-  const service = toCamelCase(Resource.meta.name)
-  const Data = Resource.meta.type
   const idField = options.idField
   const Id = options.idType
 
+  const service = toCamelCase(Resource.meta.name)
+  const Data = Resource.meta.type
+
   const payloadBase = {
     find: {
-      start: {
+      args: {
         params: Params,
       },
       success: Resource,
     },
     get: {
-      start: {
+      args: {
         id: Id,
         params: Params,
       },
       success: Data,
     },
     create: {
-      start: {
+      args: {
         data: Data,
         params: Params,
       },
       success: Data,
     },
     update: {
-      start: {
+      args: {
         id: Id,
         data: Data,
         params: Params,
@@ -56,7 +71,7 @@ function createPayloadTypes (options) {
       success: Data,
     },
     patch: {
-      start: {
+      args: {
         id: Id,
         data: Data,
         params: Params,
@@ -64,7 +79,7 @@ function createPayloadTypes (options) {
       success: Data,
     },
     remove: {
-      start: {
+      args: {
         id: Id,
         params: Params,
       },
@@ -72,31 +87,25 @@ function createPayloadTypes (options) {
     },
   }
 
-  const payloads = joinPairs(map(methods, function (method) {
-
+  return mapValues(actionIds, function (sections, method) {
     const base = payloadBase[method]
 
-    const sections = joinPairs(map(constants.SECTIONS, function (section) {
-      const key = toCamelCase(method, section)
+    return mapValues(sections, function (actionId, section) {
       const name = toCapitalCase(service, method, section, 'payload')
 
       switch (section) {
-        'async':
-          return [key, Tc.struct({
+        case 'call':
+          return Tc.struct(assign({
             service: Tc.enums.of([service]),
-            method: Tc.enums.of([method])
-          }, name)]
-        'start':
-          return [key, Tc.struct(base.start, name)]
-        'success':
-          return [key, props.success]
-        'error':
-          return [key, Error]
+            method: Tc.enums.of([method]),
+          }, base.args), name)
+        case 'start':
+          return Tc.struct(base.args, name)
+        case 'success':
+          return base.success
+        case 'error':
+          return Tc.Error
       }
-    }))
-
-    return [method, sections]
-  }))
-
-  return payloads
+    })
+  })
 }

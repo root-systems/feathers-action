@@ -1,6 +1,7 @@
 const Tc = require('tcomb')
 const join = require('lodash/join')
 const reduce = require('lodash/reduce')
+const assign = require('lodash/assign')
 const replace = require('lodash/replace')
 const toUpper = require('lodash/toUpper')
 const camelCase = require('lodash/camelCase')
@@ -15,7 +16,7 @@ module.exports = {
     return toUpper(snakeCase(join(arguments, ' ')))
   },
   toCapitalCase: function () {
-    return replace(startCase(join(arguments, ' ')), ' ', '')
+    return replace(startCase(join(arguments, ' ')), /\W+/g, '')
   },
   setDefaults: function (Type, props, defaults) {
     var patch = reduce(props, function (sofar, nextValue, nextKey) {
@@ -30,5 +31,10 @@ module.exports = {
     }, {})
 
     return Type.update(props, patch)
+  },
+  mirrorKeyValue: function (array) {
+    return reduce(array, function (sofar, next) {
+      return assign(sofar, { [next]: next })
+    }, {})
   }
 }

@@ -1,51 +1,59 @@
+const Tc = require('tcomb')
 const mapValues = require('lodash/mapValues')
 
 const createActionIds = require('./action-ids')
 const createPayloadTypes = require('./payload-types')
+const util = require('./util')
+const types = require('./types')
 
-const Options = Tc.struct({
-  Resource: types.ResourceType
-}, 'Options')
+const toCapitalCase = util.toCapitalCase
+const toCamelCase = util.toCamelCase
+const Meta = types.Meta
 
-const ActionCreatorTypes = Tc.dict(
-  Tc.String, Tc.dict(Tc.String, Tc.Function),
-'ActionCreatorTypes')
+const Options = types.Options.extend(
+  {}, 'CreateActionTypesOptions'
+)
 
-module.exports = Tc.func(Options, ActionCreatorTypes)
+const ActionTypes = Tc.dict(
+  Tc.String, Tc.dict(Tc.String, Tc.Type),
+'ActionTypes')
+
+module.exports = Tc.func(Options, ActionTypes)
   .of(createActionTypes)
 
 function createActionTypes (options) {
   const actionIds = createActionIds(options)
-  const payloadType = createPayloadTypes(options)
+  const payloadTypes = createPayloadTypes(options)
 
   const Resource = options.Resource
   const service = toCamelCase(Resource.meta.name)
 
-  const actionCreatorTypes = mapValues(actionIds, function (sections, method) {
+  return mapValues(actionIds, function (sections, method) {
     return mapValues(sections, function (actionId, section) {
       const name = toCapitalCase(service, method, section)
       const payloadType = payloadTypes[method][section]
 
       switch (section) {
-        'async':
+        case 'call':
           return Tc.struct({
             type: Tc.enums.of([actionId]),
-            payloadType: payloadType,
+            payload: payloadType
           }, name)
-        'start':
-        'success':
+        case 'start':
+        case 'success':
           return Tc.struct({
             type: Tc.enums.of([actionId]),
-            payloadType: payloadType,
-            meta: Meta,
+            payload: payloadType,
+            meta: Meta
           }, name)
-        'error':
+        case 'error':
           return Tc.struct({
-            type: Tc.enums.of([actionId])
-            payloadType: payloadType,
+            type: Tc.enums.of([actionId]),
+            payload: payloadType,
             meta: Meta,
             error: Tc.enums.of([true]),
           }, name)
       }
     })
   })
+}
