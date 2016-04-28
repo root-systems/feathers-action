@@ -1,21 +1,28 @@
 'use strict'
 
 const Tc = require('tcomb')
-const createActionCreators = require('./actions')
-const FEATHERS_ACTION = require('./FEATHERS_ACTION')
-const Collection = require('./types').Collection
 
-const Options = Tc.struct({
-  collection: Collection
+const createActionCreators = require('./actions')
+const constants = require('./constants')
+const types = require('./types')
+
+const FEATHERS_ACTION = constants.FEATHERS_ACTION
+
+const Options = types.Options({
+  client: Tc.Object
 })
 
+const Middleware = Tc.Function
 
-module.exports = Tc.func(Options, Tc.Function).of(createMiddleware)
+
+module.exports = Tc.func(
+  Options, Middlware, 'createMiddleware'
+).of(createMiddleware)
 
 // https://github.com/agraboso/redux-api-middleware/blob/master/src/middleware.js
 // http://redux.js.org/docs/advanced/Middleware.html
 
-function createMiddleware (collection, client) {
+function createMiddleware (options) {
   const actionCreators = createSyncActionCreators(collection)
 
   return (store) => (next) => (action) => {

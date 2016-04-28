@@ -1,5 +1,6 @@
 'use strict'
 
+const Tc = require('tcomb')
 const handleActions = require('redux-actions/lib/handleActions')
 const mapValues = require('lodash/mapValues')
 const assign = require('lodash/assign')
@@ -7,8 +8,9 @@ const isUndefined = require('lodash/isUndefined')
 const values = require('lodash/values')
 const flatten = require('lodash/flatten')
 
-const createActionTypes = require('./action-types')
+const createActionIds = require('./action-ids')
 const createPayloadTypes = require('./payload-types')
+const createActionTypes = require('./action-types')
 const types = require('./types')
 const constants = require('./constants')
 
@@ -142,10 +144,9 @@ const specCreators = {
   }
 }
 
-const Options = types.Options.extend({
-  Resource: types.ResourceType,
-  methods: Tc.maybe(Tc.list(Tc.String)),
-}, 'Options')
+const Options = types.Options.extend(
+  {}, 'CreateReducerOptions'
+)
 
 const Reducer = Tc.Function
 
@@ -154,12 +155,13 @@ module.exports = Tc.func(
 ).of(createReducer)
 
 
-function createReducers (options) {
+function createReducer (options) {
   options = util.setDefaults(Options, options, {
     idField: constants.DEFAULT_ID_FIELD,
     idType: types.Id
   })
 
+  const actionIds = createActionIds(options)
   const actionTypes = createActionTypes(options)
   const payloadTypes = createPayloadTypes(options)
 
@@ -189,14 +191,14 @@ function createReducers (options) {
   const reducers = mapValues(actionTypes, function (sections, method) {
     mapValues(sections, function (actionType, section) {
       const specCreator = specCreators[method][section]
-      const actionId = 
+      const actionId = actionIds[method][section]
 
       return Tc.func([State, actionType], State)
         .of(createReducer(State, actionId, specCreator))
     })
   })
 
-  const reducer = flatten(values(mapValues(reducer, values))))
+  const reducer = flatten(values(mapValues(reducer, values)))
 
   return defaultReducer(reducer, {
     records: {}
