@@ -1,6 +1,8 @@
 'use strict'
 
 const Tc = require('tcomb')
+const createCid = require('cuid')
+const assign = require('lodash/assign')
 
 const createActionCreators = require('./actions')
 const constants = require('./constants')
@@ -8,62 +10,67 @@ const types = require('./types')
 
 const FEATHERS_ACTION = constants.FEATHERS_ACTION
 
-const Options = types.Options({
-  client: Tc.Object
+const callArgs = {
+  find: (params) => ({ params }),
+  get: (id, params) => ({ id, params }),
+  create: (data, params) => ({ data, params }),
+  update: (id, data, params) => ({ id, data, params }),
+  patch: (id, data, params) => ({ id, data, params }),
+  remove: (id, params) => ({ id, params }),
+}
+
+const Options = Tc.struct({
+  client: Tc.Function
 })
 
 const Middleware = Tc.Function
 
-
 module.exports = Tc.func(
-  Options, Middlware, 'createMiddleware'
+  Options, Middleware, 'createMiddleware'
 ).of(createMiddleware)
 
 // https://github.com/agraboso/redux-api-middleware/blob/master/src/middleware.js
 // http://redux.js.org/docs/advanced/Middleware.html
 
 function createMiddleware (options) {
-  const actionCreators = createSyncActionCreators(collection)
+  const client = options.client
 
   return (store) => (next) => (action) => {
     if (action.type !== FEATHERS_ACTION) {
       return next(action)
     }
 
-    // get payload, including method name
+    const payload = action.payload
+
+    const serviceName = payload.service
+    const method = payload.method
+    const args = payload.args
+    const createStart = payload.start
+    const createSuccess = payload.success
+    const createError = payload.error
+
+    const service = client.service(serviceName)
+
+    // create client request identifier (cid)
+    const cid = createCid()
+
     // dispatch start
-    // 
-    // dispatch end
-    //
+    const getStartArgs = callArgs[method]
+    const startPayload = getStartArgs.apply(null, args)
+    const startAction = createStart(cid, startPayload)
+    store.dispatch(assign({}, startAction))
+
+    // call service method
+    return service[method].apply(service, args)
+      .then(function (result) {
+        const successAction = createSuccess(cid, result)
+        store.dispatch(assign({}, successAction))
+        throw successAction
+      })
+      .catch(function (error) {
+        const errorAction = createError(cid, error)
+        store.dispatch(assign({}, errorAction))
+        throw errorAction
+      })
   }
 }
-
-/*
-    return function () {
-      const args = slice(arguments)
-      const cid = config.cid()
-
-      return (dispatch) => {
-        const startCreator = actionCreators[`${methodName}Start`]
-        const startAction = startCreator.apply(actionCreators, [cid].concat(args))
-        dispatch(startAction)
-
-        return service[methodName].apply(service, args)
-          .then(body => {
-            const successCreator = actionCreators[`${methodName}Success`]
-            const successAction = successCreator(body, startAction.payload)
-
-            dispatch(successAction)
-            return successAction
-          })
-          .catch(error => {
-            const errorCreator = actionCreators[`${methodName}Error`]
-            const errorAction = errorCreator(error, startAction.payload)
-
-            dispatch(errorAction)
-            return errorAction
-          })
-      }
-    }
-  }
-*/

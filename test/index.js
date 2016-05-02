@@ -7,32 +7,36 @@ const memory = require('feathers-memory')
 const redux = require('redux')
 const thunk = require('redux-thunk')
 
+
+const types = require('./types')
 const feathersAction = require('../src')
+const util = require('../src/util')
+
+const toCamelCase = util.toCamelCase
 const createActions = feathersAction.createActions
 const createReducer = feathersAction.createReducer
+const createMiddleware = feathersAction.createMiddleware
+
+const Resource = types.Resource
 
 test('integrates redux, feathers, and tcomb', function (t) {
-  const Thing = Tc.struct({
-    id: Tc.Number,
-    name: Tc.String,
-    description: Tc.String
-  })
-  const Things = Tc.list(Thing, 'Things')
-  const app = createTestApp([Things])
+  const app = createTestApp([Resource])
 
-  const reducer = createReducer(Things)
-  const actions = createActions(app, Things)
+  const reducer = createReducer({ Resource })
+  const actions = createActions({ Resource })
+  const middleware = createMiddleware({ Resource, client: app })
 
-  const store = createTestStore(reducer)
+  const store = createTestStore(reducer, middleware)
 
   store.dispatch(actions.find())
   .then(function (action) {
     t.notOk(action.error)
-    t.deepEqual(action.payload.body, [])
+    t.deepEqual(action.payload, [])
   })
 
   store.dispatch(actions.get(0))
-  .then(function (action) {
+  .catch(function (action) {
+    t.ok(action.error)
     t.equal(action.payload.code, 404)
   })
 
@@ -41,27 +45,30 @@ test('integrates redux, feathers, and tcomb', function (t) {
   )
   .then(function (action) {
     t.notOk(action.error)
-    t.deepEqual(action.payload.body, { name: 'tree', id: 0 })
+    t.deepEqual(action.payload, { name: 'tree', id: 0 })
 
     return store.dispatch(actions.get(0))
   })
   .then(function (action) {
     t.notOk(action.error)
     t.equal(action.payload.id, 0)
-    t.deepEqual(action.payload.body, { name: 'tree', id: 0 })
+    t.deepEqual(action.payload, { name: 'tree', id: 0 })
     t.end()
   })
 })
 
-function createTestStore (reducer) {
-  return redux.applyMiddleware(thunk)(redux.createStore)(reducer)
+function createTestStore (reducer, middleware) {
+  return redux.applyMiddleware(middleware)(
+    redux.createStore
+  )(reducer)
 }
 
-function createTestApp (collections) {
+function createTestApp (Resources) {
   const app = feathers()
 
-  collections.forEach(function (collection) {
-    app.use('/' + collection.meta.name, memory())
+  Resources.forEach(function (Resource) {
+    const serviceName = toCamelCase(Resource.meta.name)
+    app.use('/' + serviceName, memory())
   })
 
   return app

@@ -12,15 +12,6 @@ const util = require('./util')
 
 const toCamelCase = util.toCamelCase
 
-const apiArgs = {
-  find: (params) => ({ params }),
-  get: (id, params) => ({ id, params }),
-  create: (data, params) => ({ data, params }),
-  update: (id, data, params) => ({ id, data, params }),
-  patch: (id, data, params) => ({ id, data, params }),
-  remove: (id, params) => ({ id, params }),
-}
-
 const Options = types.Options.extend(
   {}, 'CreateActionCreatorOptions'
 )
@@ -43,10 +34,19 @@ function createActionCreators (options) {
 
       switch (section) {
         case 'call':
-          return function (payload) {
+          return function () {
+            const args = Array.prototype.slice.call(arguments)
+            const aCtors = actionCreators[method]
+
             return Action({
               type: actionId,
-              payload: assign({ service, method }, payload)
+              payload: {
+                service, method,
+                args,
+                start: aCtors.start,
+                success: aCtors.success,
+                error: aCtors.error,
+              },
             })
           }
         case 'error':
@@ -74,12 +74,7 @@ function createActionCreators (options) {
   // return action creators that match feather's api
   // attach per-section creators to these
   return mapValues(actionCreators, function (creatorsBySection, method) {
-    const getApiArgs = apiArgs[method]
     const createCallAction = creatorsBySection.call
-    const apiCreator = function () {
-      const payloadArgs = getApiArgs.apply(null, arguments)
-      return createCallAction(payloadArgs)
-    }
-    return assign(apiCreator, creatorsBySection)
+    return assign(createCallAction, creatorsBySection)
   })
 }

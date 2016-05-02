@@ -14,6 +14,10 @@ npm install --save feathers-action
 
 ## usage
 
+let's imagine we have a simple app of things.
+
+we setup our feathers client.
+
 ```js
 // client.js
 const feathers = require('feathers-client')

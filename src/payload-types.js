@@ -12,6 +12,7 @@ const constants = require('./constants')
 const toCamelCase = util.toCamelCase
 const toCapitalCase = util.toCapitalCase
 const Params = types.Params
+const createPatchType = types.createPatchType
 
 const Options = types.Options.extend({
   idField: Tc.maybe(Tc.String),
@@ -40,12 +41,14 @@ function createPayloadTypes (options) {
 
   const service = toCamelCase(Resource.meta.name)
   const Data = Resource.meta.type
+  const PatchData = createPatchType(Data)
 
   const payloadBase = {
     find: {
       args: {
         params: Params,
       },
+      callArgsOrder: [],
       success: Resource,
     },
     get: {
@@ -53,6 +56,7 @@ function createPayloadTypes (options) {
         id: Id,
         params: Params,
       },
+      callArgsOrder: ['id'],
       success: Data,
     },
     create: {
@@ -60,6 +64,7 @@ function createPayloadTypes (options) {
         data: Data,
         params: Params,
       },
+      callArgsOrder: ['data'],
       success: Data,
     },
     update: {
@@ -68,14 +73,16 @@ function createPayloadTypes (options) {
         data: Data,
         params: Params,
       },
+      callArgsOrder: ['id', 'data'],
       success: Data,
     },
     patch: {
       args: {
         id: Id,
-        data: Data,
+        data: PatchData,
         params: Params,
       },
+      callArgsOrder: ['id', 'data'],
       success: Data,
     },
     remove: {
@@ -83,7 +90,8 @@ function createPayloadTypes (options) {
         id: Id,
         params: Params,
       },
-      success: Tc.Nil,
+      callArgsOrder: ['id'],
+      success: Data,
     },
   }
 
@@ -95,10 +103,14 @@ function createPayloadTypes (options) {
 
       switch (section) {
         case 'call':
-          return Tc.struct(assign({
+          return Tc.struct({
             service: Tc.enums.of([service]),
             method: Tc.enums.of([method]),
-          }, base.args), name)
+            args: callArgsType(base),
+            start: Tc.Function,
+            success: Tc.Function,
+            error: Tc.Function,
+          }, name)
         case 'start':
           return Tc.struct(base.args, name)
         case 'success':
@@ -108,4 +120,23 @@ function createPayloadTypes (options) {
       }
     })
   })
+}
+
+function callArgsType (base) {
+  const baseCallArgs = base.callArgsOrder.map(function (name) {
+    return base.args[name]
+  })
+  const callArgsTypes = [
+    Tc.tuple(baseCallArgs),
+    Tc.tuple(baseCallArgs.concat([Params])),
+  ]
+  const callArgsType = Tc.union(callArgsTypes)
+  callArgsType.dispatch = function (value) {
+    if (value.length === base.callArgsOrder.length) {
+      return callArgsTypes[0]
+    } else if (value.length === base.callArgsOrder.length + 1) {
+      return callArgsTypes[1]
+    }
+  }
+  return callArgsType
 }

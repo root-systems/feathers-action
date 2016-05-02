@@ -1,5 +1,6 @@
 const Tc = require('tcomb')
 const Symbol = require('es-symbol')
+const mapValues = require('lodash/mapValues')
 
 const isSymbol = function (symbol) {
   return symbol && (
@@ -33,13 +34,17 @@ const Options = Tc.struct({
 })
 
 const Id = Tc.union([Tc.String, Tc.Number], 'Id')
-const Params = Tc.maybe(Tc.Object)
+const Params = Tc.maybe(Tc.Object, 'Params')
 
 const Cid = Tc.String
 const Meta = Tc.struct({
   cid: Cid
 })
 
+function createPatchType (type) {
+  const maybeProps = mapValues(type.meta.props, Tc.maybe)
+  return Tc.struct(maybeProps, 'Maybe' + type.meta.name)
+}
 
 module.exports = {
   Symbol: SymbolType,
@@ -49,4 +54,5 @@ module.exports = {
   Cid,
   Params,
   Meta,
+  createPatchType,
 }

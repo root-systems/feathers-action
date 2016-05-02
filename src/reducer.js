@@ -1,7 +1,7 @@
 'use strict'
 
 const Tc = require('tcomb')
-const handleActions = require('redux-actions/lib/handleActions')
+const reduceReducers = require('reduce-reducers')
 const mapValues = require('lodash/mapValues')
 const assign = require('lodash/assign')
 const isUndefined = require('lodash/isUndefined')
@@ -13,6 +13,10 @@ const createPayloadTypes = require('./payload-types')
 const createActionTypes = require('./action-types')
 const types = require('./types')
 const constants = require('./constants')
+const util = require('./util')
+
+const toCamelCase = util.toCamelCase
+const toCapitalCase = util.toCapitalCase
 
 const specCreators = {
   find: {
@@ -144,9 +148,9 @@ const specCreators = {
   }
 }
 
-const Options = types.Options.extend(
-  {}, 'CreateReducerOptions'
-)
+const Options = types.Options.extend({
+  idType: Tc.maybe(Tc.Type)
+}, 'CreateReducerOptions')
 
 const Reducer = Tc.Function
 
@@ -157,7 +161,6 @@ module.exports = Tc.func(
 
 function createReducer (options) {
   options = util.setDefaults(Options, options, {
-    idField: constants.DEFAULT_ID_FIELD,
     idType: types.Id
   })
 
@@ -166,8 +169,8 @@ function createReducer (options) {
   const payloadTypes = createPayloadTypes(options)
 
   const Resource = options.Resource
-  const idField = options.idField
   const Id = options.idType
+  const Cid = types.Cid
 
   const service = toCamelCase(Resource.meta.name)
   const Data = Resource.meta.type
@@ -176,10 +179,10 @@ function createReducer (options) {
   const SuccessPayload = sectionUnion(service, payloadTypes, 'success')
   const ErrorPayload = sectionUnion(service, payloadTypes, 'error')
 
-  const Records = Tc.dict(Id, Data)
-  const Pending = Tc.dict(Cid, StartPayload)
-  const Success = Tc.dict(Cid, SuccessPayload)
-  const Error = Tc.dict(Cid, ErrorPayload)
+  const Records = Tc.dict(Id, Data, 'Records')
+  const Pending = Tc.dict(Cid, StartPayload, 'Pending')
+  const Success = Tc.dict(Cid, SuccessPayload, 'Success')
+  const Error = Tc.dict(Cid, ErrorPayload, 'Error')
 
   const State = Tc.struct({
     records: Data,
@@ -189,16 +192,16 @@ function createReducer (options) {
   })
 
   const reducers = mapValues(actionTypes, function (sections, method) {
-    mapValues(sections, function (actionType, section) {
+    return mapValues(sections, function (actionType, section) {
       const specCreator = specCreators[method][section]
       const actionId = actionIds[method][section]
 
       return Tc.func([State, actionType], State)
-        .of(createReducer(State, actionId, specCreator))
+        .of(createActionReducer(State, actionId, specCreator))
     })
   })
 
-  const reducer = flatten(values(mapValues(reducer, values)))
+  const reducer = unifyReducers(reducers)
 
   return defaultReducer(reducer, {
     records: {}
@@ -214,7 +217,7 @@ function defaultReducer (reducer, defaultState) {
   }
 }
 
-function createReducer (State, actionId, specCreator) {
+function createActionReducer (State, actionId, specCreator) {
   return function (state, action) {
     return (action.type === actionId) ?
       State.update(state, specCreator(action))
@@ -247,4 +250,10 @@ function sectionUnion (service, payloadTypes, section) {
   const sectionTypeName = toCapitalCase(service, section, 'payload')
 
   return Tc.union(sectionTypes, sectionTypeName)
+}
+
+function unifyReducers (reducers) {
+  const reducersPerMethod = mapValues(reducers, values)
+  const serviceReducers = flatten(values(reducersPerMethod))
+  return reduceReducers.apply(null, reducers)
 }

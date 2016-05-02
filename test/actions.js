@@ -2,7 +2,7 @@
 
 const test = require('tape')
 const Tc = require('tcomb')
-const cuid = require('cuid')
+const createCid = require('cuid')
 
 const createActions = require('../src/actions')
 const FEATHERS_ACTION = require('../src/constants').FEATHERS_ACTION
@@ -16,29 +16,30 @@ test('creates actions', function (t) {
   const actions = createActions({ Resource: Things })
 
   const query = { id: { $in: [0, 1, 2] } }
-  t.deepEqual(actions.find({ query }), {
-    type: FEATHERS_ACTION,
-    payload: {
-      service: 'things',
-      method: 'find',
-      params: { query }
-    }
-  })
-
-  t.deepEqual(actions.find.call({
-    params: { query } }
-  ), {
-    type: FEATHERS_ACTION,
-    payload: {
-      service: 'things',
-      method: 'find',
-      params: { query }
-    }
-  })
-
-  const startCid = cuid()
   t.deepEqual(
-    actions.find.start(startCid, {
+    actions.find({ query }),
+    {
+      type: FEATHERS_ACTION,
+      payload: {
+        service: 'things',
+        method: 'find',
+        args: [{ query }],
+        start: actions.find.start,
+        success: actions.find.success,
+        error: actions.find.error
+      }
+    }
+  )
+
+  t.deepEqual(
+    actions.find.call({ query }),
+    actions.find({ query })
+  )
+
+  const cid = createCid()
+
+  t.deepEqual(
+    actions.find.start(cid, {
       params: { query }
     }),
     {
@@ -46,21 +47,31 @@ test('creates actions', function (t) {
       payload: {
         params: { query }
       },
-      meta: { cid: startCid },
+      meta: { cid },
     }
   )
 
-  const successCid = cuid()
   const successResult = [
-    Thing({ id: 1, name: 'human' }),
-    Thing({ id: 2, name: 'computer' }),
+    { id: 1, name: 'human' },
+    { id: 2, name: 'computer' },
   ]
   t.deepEqual(
-    actions.find.success(successCid, successResult),
+    actions.find.success(cid, successResult),
     {
       type: 'THINGS_FIND_SUCCESS',
       payload: successResult,
-      meta: { cid: successCid },
+      meta: { cid },
+    }
+  )
+
+  const error = new Error('failure to communicate.')
+  t.deepEqual(
+    actions.find.error(cid, error),
+    {
+      type: 'THINGS_FIND_ERROR',
+      payload: error,
+      error: true,
+      meta: { cid },
     }
   )
 

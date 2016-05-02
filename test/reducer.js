@@ -4,6 +4,7 @@ const test = require('tape')
 const values = require('lodash/values')
 const pick = require('lodash/pick')
 const omit = require('lodash/omit')
+const assign = require('lodash/assign')
 
 const createActions = require('../src/actions')
 const createReducer = require('../src/reducer')
@@ -14,7 +15,7 @@ const Resource = types.Resource
 const things = {
   0: { id: 0, name: 'honey', description: 'sweet and delicious.' },
   1: { id: 1, name: 'tea' },
-  2: { id: 2, mame: 'mug' }
+  2: { id: 2, name: 'mug' }
 }
 const thing = things[0]
 const preThing = omit(thing, 'id')
@@ -101,10 +102,10 @@ test('remove', function (t) {
 
   let state = { records: { [thing.id]: thing } }
   const cid = '1234'
-  const startAction = actions.removeStart(cid, { id: thing.id })
+  const startAction = actions.remove.start(cid, { id: thing.id })
   state = reducer(state, startAction)
   t.deepEqual(state.records, {})
-  const successAction = actions.removeStart(cid, thing)
+  const successAction = actions.remove.success(cid, thing)
   state = reducer(state, successAction)
   t.deepEqual(state.records, {})
   t.end()
