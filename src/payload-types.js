@@ -39,7 +39,7 @@ function createPayloadTypes (options) {
   const idField = options.idField
   const Id = options.idType
 
-  const service = toCamelCase(Resource.meta.name)
+  const serviceName = toCamelCase(Resource.meta.name)
   const Data = Resource.meta.type
   const PatchData = createPatchType(Data)
 
@@ -99,17 +99,15 @@ function createPayloadTypes (options) {
     const base = payloadBase[method]
 
     return mapValues(sections, function (actionId, section) {
-      const name = toCapitalCase(service, method, section, 'payload')
+      const name = toCapitalCase(serviceName, method, section, 'payload')
 
       switch (section) {
         case 'call':
           return Tc.struct({
-            service: Tc.enums.of([service]),
+            service: Tc.Any,
+            serviceName: Tc.enums.of([serviceName]),
             method: Tc.enums.of([method]),
-            args: callArgsType(base),
-            start: Tc.Function,
-            success: Tc.Function,
-            error: Tc.Function,
+            args: callArgsType(base)
           }, name)
         case 'start':
           return Tc.struct(base.args, name)

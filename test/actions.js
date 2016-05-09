@@ -21,12 +21,10 @@ test('creates actions', function (t) {
     {
       type: FEATHERS_ACTION,
       payload: {
-        service: 'things',
+        service: undefined,
+        serviceName: 'things',
         method: 'find',
-        args: [{ query }],
-        start: actions.find.start,
-        success: actions.find.success,
-        error: actions.find.error
+        args: [{ query }]
       }
     }
   )

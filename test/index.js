@@ -5,8 +5,7 @@ const Tc = require('tcomb')
 const feathers = require('feathers')
 const memory = require('feathers-memory')
 const redux = require('redux')
-const thunk = require('redux-thunk')
-
+const Loop = require('redux-loop')
 
 const types = require('./types')
 const feathersAction = require('../src')
@@ -34,6 +33,8 @@ test('integrates redux, feathers, and tcomb', function (t) {
     t.deepEqual(action.payload, [])
   })
 
+  console.log('actions.get(0)', actions.get(0))
+
   store.dispatch(actions.get(0))
   .catch(function (action) {
     t.ok(action.error)
@@ -58,9 +59,13 @@ test('integrates redux, feathers, and tcomb', function (t) {
 })
 
 function createTestStore (reducer, middleware) {
-  return redux.applyMiddleware(middleware)(
-    redux.createStore
-  )(reducer)
+  return redux.createStore(
+    reducer,
+    redux.compose(
+      Loop.install(),
+      redux.applyMiddleware(middleware)
+    )
+  )
 }
 
 function createTestApp (Resources) {

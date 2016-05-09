@@ -23,7 +23,7 @@ module.exports = Tc.func(Options, ActionCreators)
 
 function createActionCreators (options) {
   const Resource = options.Resource
-  const service = toCamelCase(Resource.meta.name)
+  const serviceName = toCamelCase(Resource.meta.name)
 
   const actionIds = createActionIds(options)
   const actionTypes = createActionTypes(options)
@@ -36,16 +36,11 @@ function createActionCreators (options) {
         case 'call':
           return function () {
             const args = Array.prototype.slice.call(arguments)
-            const aCtors = actionCreators[method]
 
             return Action({
               type: actionId,
               payload: {
-                service, method,
-                args,
-                start: aCtors.start,
-                success: aCtors.success,
-                error: aCtors.error,
+                serviceName, method, args
               },
             })
           }
@@ -61,6 +56,7 @@ function createActionCreators (options) {
         case 'start':
         case 'success':
           return function (cid, payload) {
+            console.log('cid', cid, 'payload', payload)
             return Action({
               type: actionId,
               payload,
