@@ -20,6 +20,23 @@ hello warld
 
 ## API
 
+### var action = createMiddleware(opts={})
+Creates a new middleware to pass to `redux.createStore`.
+Valid `opts` keys include:
+- `client` (required) - the feathers client instance.
+
+eg:
+```js
+const feathersAction = require('feathers-action')
+const { createStore } = require('redux')
+const feathers = require('feathers/client')
+
+const client = feathers().configure(...)
+
+const middleware = createMiddleware({ client })
+const store = createStore(state => state, middleware)
+```
+
 ### var action = createActions(opts={})
 Creates a new set of actions for the `Resource` passed to `opts`.
 Valid `opts` keys include:
@@ -33,12 +50,10 @@ var tc = require('tcomb')
 const Thing = Tc.struct({
   id: Tc.maybe(Tc.Number),
   name: Tc.String
-  }, 'Thing')
+}, 'Thing')
 const Things = Tc.list(Thing, 'Things')
 const actions = createActions({ Resource: Things })
 ```
-
-See [api_formatting.md](api_formatting.md) for tips.
 
 ## Install
 
