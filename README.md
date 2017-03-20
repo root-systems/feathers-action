@@ -20,10 +20,30 @@ hello warld
 
 ## API
 
-### var action = createMiddleware(opts={})
+### var reducer = createReducer(opts={})
+Creates a new reducer to pass to `redux.createStore`.
+Valid `opts` keys include:
+- `Resource` (required) - A tcomb named list type describing the resource.
+
+eg:
+```js
+const feathersAction = require('feathers-action')
+const tc = require('tcomb')
+
+const Thing = Tc.struct({
+  id: Tc.maybe(Tc.Number),
+  name: Tc.String
+}, 'Thing')
+const Things = Tc.list(Thing, 'Things')
+
+const reducer = createReducer({Resource: Things})
+const store = createStore(reducer, {}, enhancer)
+```
+
+### var middleware = createMiddleware(opts={})
 Creates a new middleware to pass to `redux.createStore`.
 Valid `opts` keys include:
-- `client` (required) - the feathers client instance.
+- `client` (required) - the feathers client instance..
 
 eg:
 ```js
@@ -35,7 +55,7 @@ const client = feathers().configure(...)
 
 const middleware = createMiddleware({ client })
 const enhancer = applyMiddleware(middleware) 
-const store = createStore(state => state,{}, enhancer)
+const store = createStore(state => state, {}, enhancer)
 ```
 
 ### var action = createActions(opts={})
