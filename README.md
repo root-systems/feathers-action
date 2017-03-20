@@ -28,13 +28,14 @@ Valid `opts` keys include:
 eg:
 ```js
 const feathersAction = require('feathers-action')
-const { createStore } = require('redux')
+const { createStore, applyMiddleware } = require('redux')
 const feathers = require('feathers/client')
 
 const client = feathers().configure(...)
 
 const middleware = createMiddleware({ client })
-const store = createStore(state => state, middleware)
+const enhancer = applyMiddleware(middleware) 
+const store = createStore(state => state,{}, enhancer)
 ```
 
 ### var action = createActions(opts={})
