@@ -20,14 +20,14 @@ hello warld
 
 ## API
 
-### var reducer = createReducer(opts={})
+### const reducer = createReducer(opts={})
 Creates a new reducer to pass to `redux.createStore`.
 Valid `opts` keys include:
 - `Resource` (required) - A tcomb named list type describing the resource.
 
 eg:
 ```js
-const feathersAction = require('feathers-action')
+const { createReducer } = require('feathers-action')
 const Tc = require('tcomb')
 
 const Thing = Tc.struct({
@@ -40,14 +40,14 @@ const reducer = createReducer({Resource: Things})
 const store = createStore(reducer, {}, enhancer)
 ```
 
-### var middleware = createMiddleware(opts={})
+### const middleware = createMiddleware(opts={})
 Creates a new middleware to pass to `redux.createStore`.
 Valid `opts` keys include:
 - `client` (required) - the feathers client instance..
 
 eg:
 ```js
-const feathersAction = require('feathers-action')
+const { createMiddleware } = require('feathers-action')
 const { createStore, applyMiddleware } = require('redux')
 const feathers = require('feathers/client')
 
@@ -58,20 +58,21 @@ const enhancer = applyMiddleware(middleware)
 const store = createStore(state => state, {}, enhancer)
 ```
 
-### var actions = createActions(opts={})
+### const actions = createActions(opts={})
 Creates a new set of actions for the `Resource` passed to `opts`.
 Valid `opts` keys include:
 - `Resource` (required) - a named `tcomb` list type.
 
 eg:
 ```js
-var feathersAction = require('feathers-action')
-var Tc = require('tcomb')
+const { createActions } = require('feathers-action')
+const Tc = require('tcomb')
 
 const Thing = Tc.struct({
   id: Tc.maybe(Tc.Number),
   name: Tc.String
 }, 'Thing')
+
 const Things = Tc.list(Thing, 'Things')
 const actions = createActions({ Resource: Things })
 ```
