@@ -28,7 +28,7 @@ Valid `opts` keys include:
 eg:
 ```js
 const feathersAction = require('feathers-action')
-const tc = require('tcomb')
+const Tc = require('tcomb')
 
 const Thing = Tc.struct({
   id: Tc.maybe(Tc.Number),
@@ -66,7 +66,7 @@ Valid `opts` keys include:
 eg:
 ```js
 var feathersAction = require('feathers-action')
-var tc = require('tcomb')
+var Tc = require('tcomb')
 
 const Thing = Tc.struct({
   id: Tc.maybe(Tc.Number),
