@@ -58,7 +58,7 @@ const enhancer = applyMiddleware(middleware)
 const store = createStore(state => state, {}, enhancer)
 ```
 
-### var action = createActions(opts={})
+### var actions = createActions(opts={})
 Creates a new set of actions for the `Resource` passed to `opts`.
 Valid `opts` keys include:
 - `Resource` (required) - a named `tcomb` list type.
