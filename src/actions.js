@@ -34,9 +34,7 @@ function createActionCreators (options) {
 
       switch (section) {
         case 'call':
-          return function () {
-            const args = Array.prototype.slice.call(arguments)
-
+          return function (...args) {
             return Action({
               type: actionId,
               payload: {

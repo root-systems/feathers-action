@@ -31,7 +31,12 @@ test('find', function (t) {
   t.deepEqual(state.records, {})
   const successAction = actions.find.success(cid, values(things))
   state = reducer(state, successAction)
-  t.deepEqual(state.records, things)
+  const expectedSuccessRecords = {
+    0: { id: 0, name: 'honey', description: 'sweet and delicious.' },
+    1: { id: 1, name: 'tea', description: undefined },
+    2: { id: 2, name: 'mug', description: undefined }
+  }
+  t.deepEqual(state.records, expectedSuccessRecords)
   t.end()
 })
 
@@ -45,6 +50,7 @@ test('get', function (t) {
   state = reducer(state, startAction)
   t.deepEqual(state.records, {})
   const successAction = actions.get.success(cid, thing)
+  state = reducer(state, successAction)
   t.deepEqual(state.records, { [thing.id]: thing })
   t.end()
 })
@@ -57,8 +63,12 @@ test('create', function (t) {
   const cid = '1234'
   const startAction = actions.create.start(cid, { data: preThing })
   state = reducer(state, startAction)
-  t.deepEqual(state.records, { [cid]: preThing })
+  const expectedStartRecords = {
+    1234: assign({ id: undefined }, preThing)
+  }
+  t.deepEqual(state.records, expectedStartRecords)
   const successAction = actions.create.success(cid, thing)
+  state = reducer(state, successAction)
   t.deepEqual(state.records, { [thing.id]: thing })
   t.end()
 })
@@ -69,13 +79,20 @@ test('update', function (t) {
 
   let state = { records: { [thing.id]: thing } }
   const nextThing = { id: 0, name: 'bee spit' }
+  const expectedNextThing = assign({ description: undefined }, nextThing)
   const cid = '1234'
   const startAction = actions.update.start(cid, { id: 0, data: nextThing })
   state = reducer(state, startAction)
-  t.deepEqual(state.records, { [nextThing.id]: thing })
+  t.deepEqual(state.records, { [nextThing.id]: expectedNextThing })
   const successAction = actions.update.success(cid, nextThing)
   state = reducer(state, successAction)
-  t.deepEqual(state.records, { [nextThing.id]: nextThing })
+  t.deepEqual(state.records, { [nextThing.id]: expectedNextThing })
+
+  state = { records: { [thing.id]: thing } }
+  state = reducer(state, startAction)
+  const errorAction = actions.update.error(cid, new Error('error!'))
+  state = reducer(state, errorAction)
+  t.deepEqual(state.records, { [nextThing.id]: thing })
   t.end()
 })
 

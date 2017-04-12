@@ -22,6 +22,8 @@ module.exports = Tc.func(Options, ActionTypes)
   .of(createActionTypes)
 
 function createActionTypes (options) {
+  options = Options(options)
+
   const actionIds = createActionIds(options)
   const payloadTypes = createPayloadTypes(options)
 

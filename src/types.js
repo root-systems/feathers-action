@@ -2,6 +2,8 @@ const Tc = require('tcomb')
 const Symbol = require('es-symbol')
 const mapValues = require('lodash/mapValues')
 
+const constants = require('./constants')
+
 const isSymbol = function (symbol) {
   return symbol && (
     // es6 symbol check
@@ -30,7 +32,12 @@ const Methods = Tc.list(Tc.String)
 
 const Options = Tc.struct({
   Resource: ResourceType,
-  methods: Tc.maybe(Methods)
+  methods: Methods
+}, {
+  name: 'Options',
+  defaultProps: {
+    methods: constants.DEFAULT_METHODS
+  }
 })
 
 const Id = Tc.union([Tc.String, Tc.Number], 'Id')

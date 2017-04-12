@@ -15,9 +15,15 @@ const Params = types.Params
 const createPatchType = types.createPatchType
 
 const Options = types.Options.extend({
-  idField: Tc.maybe(Tc.String),
-  idType: Tc.maybe(Tc.Type)
-}, 'CreatePayloadTypeOptions')
+  idField: Tc.String,
+  idType: Tc.Type
+}, {
+  name: 'CreatePayloadTypeOptions',
+  defaultProps: {
+    idField: constants.DEFAULT_ID_FIELD,
+    idType: types.Id
+  }
+})
 
 const PayloadTypes = Tc.dict(
   Tc.String, Tc.dict(Tc.String, Tc.Type),
@@ -28,20 +34,17 @@ module.exports = Tc.func(
 ).of(createPayloadTypes)
 
 function createPayloadTypes (options) {
-  options = util.setDefaults(Options, options, {
-    idField: constants.DEFAULT_ID_FIELD,
-    idType: types.Id
-  })
+  options = Options(options)
 
   const actionIds = createActionIds(options)
 
-  const Resource = options.Resource
-  const idField = options.idField
-  const Id = options.idType
+  const { Resource, idField, idType: Id } = options
 
   const serviceName = toCamelCase(Resource.meta.name)
   const Data = Resource.meta.type
-  const PatchData = createPatchType(Data)
+  const DataWithId = Data.extend({ [idField]: Id })
+  const ResourceWithIds = Tc.list(DataWithId, Resource.meta.name)
+  const PatchData = createPatchType(DataWithId)
 
   const payloadBase = {
     find: {
@@ -49,7 +52,7 @@ function createPayloadTypes (options) {
         params: Params,
       },
       callArgsOrder: [],
-      success: Resource,
+      success: ResourceWithIds,
     },
     get: {
       args: {
@@ -57,7 +60,7 @@ function createPayloadTypes (options) {
         params: Params,
       },
       callArgsOrder: ['id'],
-      success: Data,
+      success: DataWithId,
     },
     create: {
       args: {
@@ -65,16 +68,16 @@ function createPayloadTypes (options) {
         params: Params,
       },
       callArgsOrder: ['data'],
-      success: Data,
+      success: DataWithId,
     },
     update: {
       args: {
         id: Id,
-        data: Data,
+        data: DataWithId,
         params: Params,
       },
       callArgsOrder: ['id', 'data'],
-      success: Data,
+      success: DataWithId,
     },
     patch: {
       args: {
@@ -83,7 +86,7 @@ function createPayloadTypes (options) {
         params: Params,
       },
       callArgsOrder: ['id', 'data'],
-      success: Data,
+      success: DataWithId,
     },
     remove: {
       args: {
@@ -91,8 +94,8 @@ function createPayloadTypes (options) {
         params: Params,
       },
       callArgsOrder: ['id'],
-      success: Data,
-    },
+      success: DataWithId,
+    }
   }
 
   return mapValues(actionIds, function (sections, method) {

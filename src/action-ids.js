@@ -19,7 +19,8 @@ function createActionId (service, method, section) {
 }
 
 const Options = types.Options.extend(
-  {}, 'CreateActionIdsOptions'
+  {},
+  'CreateActionIdsOptions'
 )
 
 const ActionTypes = Tc.dict(
@@ -35,9 +36,7 @@ module.exports = Tc.func(
 module.exports.createActionId = createActionId
 
 function createActionIds (options) {
-  options = util.setDefaults(Options, options, {
-    methods: constants.DEFAULT_METHODS
-  })
+  options = Options(options)
 
   const Resource = options.Resource
   const methods = options.methods

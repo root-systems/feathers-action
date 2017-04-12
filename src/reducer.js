@@ -38,8 +38,8 @@ const specCreators = {
     },
     success: function (action) {
       return assign({
-        records: action.payload.result.reduce(function (sofar, entity) {
-          sofar[entity[key]] = { $set: entity }
+        records: action.payload.reduce(function (sofar, entity) {
+          sofar[entity.id] = { $set: entity }
           return sofar
         }, {})
       }, successSpec(action))
@@ -55,7 +55,7 @@ const specCreators = {
     success: function (action) {
       return assign({
         records: {
-          [action.payload.id]: { $set: action.payload.result }
+          [action.payload.id]: { $set: action.payload }
         }
       }, successSpec(action))
     },
@@ -75,7 +75,7 @@ const specCreators = {
       return assign({
         records: {
           $remove: [action.meta.cid],
-          [action.payload.result[key]]: { $set: action.payload.result }
+          [action.payload.id]: { $set: action.payload }
         }
       }, successSpec(action))
     },
@@ -88,25 +88,29 @@ const specCreators = {
     }
   },
   update: {
-    start: function (action) {
+    start: function (action, state) {
+      const { pending: startPending } = startSpec(action)
       return assign({
         records: {
           [action.payload.id]: { $set: action.payload.data }
-        }
-      }, startSpec(action))
+        },
+        pending: assign(startPending, {
+          previousData: state.records[action.payload.id]
+        })
+      })
     },
     success: function (action) {
       return assign({
         records: {
-          [action.payload.id]: { $set: action.payload.result }
+          [action.payload.id]: { $set: action.payload }
         }
       }, successSpec(action))
     },
-    error: function (action) {
+    error: function (action, state) {
+      const { previousData } = state.pending[action.meta.cid]
       return assign({
-        // TODO reset to before update
         records: {
-          $remove: [action.payload.id]
+          [action.payload.id]: { $set: previousData }
         }
       }, errorSpec(action))
     }
@@ -162,8 +166,15 @@ const specCreators = {
 }
 
 const Options = types.Options.extend({
+  idField: Tc.maybe(Tc.String),
   idType: Tc.maybe(Tc.Type)
-}, 'CreateReducerOptions')
+}, {
+  name: 'CreateReducerOptions',
+  defaultProps: {
+    idField: constants.DEFAULT_ID_FIELD,
+    idType: types.Id
+  }
+})
 
 const Reducer = Tc.Function
 
@@ -174,28 +185,34 @@ module.exports = Tc.func(
 module.exports.callEffect = callEffect
 
 function createReducer (options) {
-  options = util.setDefaults(Options, options, {
-    idType: types.Id
+  options = Options(options)
+
+  const { Cid } = types
+  const { Resource, idField, idType: Id } = options
+
+  const serviceName = toCamelCase(Resource.meta.name)
+  const ServiceName = toCapitalCase(Resource.meta.name)
+  const Data = Resource.meta.type
+  const DataWithId = Data.extend({
+    [idField]: Id
+  })
+  const DataWithMaybeId = Data.extend({
+    [idField]: Tc.maybe(Id)
   })
 
   const actionIds = createActionIds(options)
   const actionTypes = createActionTypes(options)
-  const payloadTypes = createPayloadTypes(options)
   const actions = createActions(options)
 
-  const Resource = options.Resource
-  const Id = options.idType
-  const Cid = types.Cid
+  const StartPayload = sectionUnion(serviceName, actionTypes, 'start')
+  const SuccessPayload = sectionUnion(serviceName, actionTypes, 'success')
+  const ErrorPayload = sectionUnion(serviceName, actionTypes, 'error')
 
-  const serviceName = toCamelCase(Resource.meta.name)
-  const Data = Resource.meta.type
-
-  const StartPayload = sectionUnion(serviceName, payloadTypes, 'start')
-  const SuccessPayload = sectionUnion(serviceName, payloadTypes, 'success')
-  const ErrorPayload = sectionUnion(serviceName, payloadTypes, 'error')
-
-  const Records = Tc.dict(Id, Data, 'Records')
-  const Pending = Tc.dict(Cid, StartPayload, 'Pending')
+  const Records = Tc.dict(Id, DataWithMaybeId, 'Records')
+  const PendingStartPayload = StartPayload.extend({
+    previousData: Tc.maybe(DataWithId)
+  }, 'PendingStartPayload')
+  const Pending = Tc.dict(Cid, PendingStartPayload, 'Pending')
   const Success = Tc.dict(Cid, SuccessPayload, 'Success')
   const Error = Tc.dict(Cid, ErrorPayload, 'Error')
 
@@ -204,6 +221,14 @@ function createReducer (options) {
     pending: Pending,
     success: Success,
     error: Error,
+  }, {
+    name: `${ServiceName}State`,
+    defaultProps: {
+      records: {},
+      pending: {},
+      success: {},
+      error: {}
+    }
   })
 
   const reducers = mapValues(actionTypes, function (sections, method) {
@@ -229,30 +254,15 @@ function createReducer (options) {
 
   const reducer = unifyReducers(reducers)
 
-  return defaultReducer(reducer, {
-    records: {},
-    pending: {},
-    success: {},
-    error: {}
-  })
-}
-
-function defaultReducer (reducer, defaultState) {
-  return function (state, action) {
-    if (isUndefined(state)) {
-      state = defaultState
-    }
-    return reducer(state, action)
-  }
+  return reducer
 }
 
 function createActionReducer (State, actionType, actionId, specCreator) {
-  return function (state, action) {
-    return (action.type === actionId) ?
-      State.update(
-        State(state),
-        specCreator(actionType(action))
-      ) : state
+  return function (state = {}, action) {
+    state = State(state)
+    if (action.type !== actionId) return state
+    const updateSpec = specCreator(actionType(action), state)
+    return State.update(state, updateSpec)
   }
 }
 
@@ -276,8 +286,8 @@ function errorSpec (action) {
   }
 }
 
-function sectionUnion (serviceName, payloadTypes, section) {
-  const sectionTypes = values(mapValues(payloadTypes, section))
+function sectionUnion (serviceName, actionTypes, section) {
+  const sectionTypes = values(mapValues(actionTypes, section))
   const sectionTypeName = toCapitalCase(serviceName, section, 'payload')
 
   const sectionUnion = Tc.union(sectionTypes, sectionTypeName)
@@ -291,7 +301,7 @@ function sectionUnion (serviceName, payloadTypes, section) {
     Tc.assert(valueService === serviceName, 'Unexpected serviceName in action.type, expected ' + serviceName + ', received ' + valueService)
     Tc.assert(valueSection === section, 'Unexpected section in action.type, expected ' + section + ', received ' + valueSection)
 
-    return payloadTypes[method][valueSection]
+    return actionTypes[method][valueSection]
   }
 
   return sectionUnion

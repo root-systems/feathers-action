@@ -9,11 +9,12 @@ const FEATHERS_ACTION = require('../src/constants').FEATHERS_ACTION
 
 test('creates actions', function (t) {
   const Thing = Tc.struct({
-    id: Tc.maybe(Tc.Number),
     name: Tc.String
   }, 'Thing')
   const Things = Tc.list(Thing, 'Things')
   const actions = createActions({ Resource: Things })
+
+  console.log('actions', actions)
 
   const query = { id: { $in: [0, 1, 2] } }
   t.deepEqual(
