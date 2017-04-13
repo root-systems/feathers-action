@@ -1,96 +1,42 @@
 'use strict'
 
 const test = require('tape')
-const Tc = require('tcomb')
-const feathers = require('feathers')
-const memory = require('feathers-memory')
-const redux = require('redux')
-const Loop = require('redux-loop')
+const feathersAction = require('../src/')
 
-const types = require('./types')
-const feathersAction = require('../src')
-const util = require('../src/util')
+const apiKeyNames = ['actions, updater, epic']
 
-const toCamelCase = util.toCamelCase
-const createActions = feathersAction.createActions
-const createReducer = feathersAction.createReducer
-const createMiddleware = feathersAction.createMiddleware
-
-const Resource = types.Resource
-
-test('integrates redux and feathers', function (t) {
-  const resources = ['cats', 'dogs']
-  const app = createTestApp(resources)
-  const services = feathersAction([
-    'cats',
-    'dogs'
-  ])
-  const cats = feathersAction({
-    name: 'cats'
-    idField: 'id'
-  })
-  const dogs = feathersAction('dogs')
-
-  const middleware = feathersAction.middleware({
-    client,
-    services: [
-      'cats',
-      'dogs'
-    ]
-  })
-  const store = createTestStore(reducer, middleware)
-
-  // cats.reducer is the reducer
-  // cats.actions.find
-
-  store.dispatch(cats.actions.find())
-  .then(function (action) {
-    t.notOk(action.error)
-    t.deepEqual(action.payload, [])
-  })
-
-  console.log('actions.get(0)', cats.actions.get(0))
-
-  store.dispatch(cats.actions.get(0))
-  .catch(function (action) {
-    t.ok(action.error)
-    t.equal(action.payload.code, 404)
-  })
-
-  store.dispatch(
-    cats.actions.create({ name: 'tree' })
-  )
-  .then(function (action) {
-    t.notOk(action.error)
-    t.deepEqual(action.payload, { name: 'tree', id: 0 })
-
-    return store.dispatch(cats.actions.get(0))
-  })
-  .then(function (action) {
-    t.notOk(action.error)
-    t.equal(action.payload.id, 0)
-    t.deepEqual(action.payload, { name: 'tree', id: 0 })
-    t.end()
-  })
+test('feathersAction is a function', function(t) {
+  t.equal(typeof featherAction, 'function')
+  t.end()
 })
 
-function createTestStore (reducer, middleware) {
-  return redux.createStore(
-    reducer,
-    redux.compose(
-      Loop.install(),
-      redux.applyMiddleware(middleware)
-    )
-  )
-}
+test('feathersAction called with a string returns object with action, updater and epic keys', function(t) {
+  const modules = feathersAction('cats')
+  t.deepEqual(Object.keys(modules), apiKeyNames)
+  t.end()
+})
 
-function createTestApp (Resources) {
-  const app = feathers()
+test('feathersAction called with a object returns object with action, updater and epic keys', function(t) {
+  const modules = feathersAction({name:'cats'})
+  t.deepEqual(Object.keys(modules), apiKeyNames)
+  t.end()
+})
 
-  Resources.forEach(function (Resource) {
-    const serviceName = toCamelCase(Resource.meta.name)
-    app.use('/' + serviceName, memory())
-  })
+test('feathersAction called with an array of strings returns object with keys that match the strings', function(t) {
+  const modules = feathersAction(['cats', 'dogs'])
+  t.deepEqual(Object.keys(modules.cats), apiKeyNames)
+  t.deepEqual(Object.keys(modules.dogs), apiKeyNames)
+  t.end()
+})
 
-  return app
-}
+test('feathersAction called with an array of objects returns object with keys that match the object names', function(t) {
+  const modules = feathersAction({name:'cats'}, {name:'dogs'})
+  t.deepEqual(Object.keys(modules.cats), apiKeyNames)
+  t.deepEqual(Object.keys(modules.dogs), apiKeyNames)
+  t.end()
+})
+
+test('throws if called with no args', function(t) {
+  t.throws(() => feathersAction())
+  t.end()
+})
