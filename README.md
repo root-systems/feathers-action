@@ -18,63 +18,178 @@ outputs
 hello warld
 ```
 
+
 ## API
 
-### const reducer = createReducer(opts={})
-Creates a new reducer to pass to `redux.createStore`.
-Valid `opts` keys include:
-- `Resource` (required) - A tcomb named list type describing the resource.
+### module = feathersAction(name)
+### module = feathersAction(options)
 
-eg:
+`options`:
+
+- `name`
+- `idField`
+
+maybe more from [here](https://github.com/feathersjs/feathers-reactive#options)
+
+### { actions, updater, epic } = module
+
+- `actions`: object where keys are method names (`find`, `get`, `create`, ...)
+- [`updater`](https://github.com/rvikmanis/redux-fp): `action => state => nextState`
+- [`epic`](https://redux-observable.js.org/docs/basics/Epics.html): `(action, action$, store) => nextAction$`
+
+### modules = feathersAction([name, ...])
+### modules = feathersAction([options, ...])
+
+where `modules` is an object where key is `name`.
+
+### middleware = feathersAction.middleware(client)
+
+all the middleware does is inject the `client` into any `FEATHERS_ACTION` actions, to be used by the relevant epics.
+
+### Action Creators
+
 ```js
-const { createReducer } = require('feathers-action')
-const Tc = require('tcomb')
+const cats = feathersAction('cats')
 
-const Thing = Tc.struct({
-  id: Tc.maybe(Tc.Number),
-  name: Tc.String
-}, 'Thing')
-const Things = Tc.list(Thing, 'Things')
+const action = cats.actions.create({ name: 'fluffy' }) // same as feathers client!
+// returns action to be consumed by epic
+assert.deepEqual(action, {
+  type: 'FEATHERS_ACTION',
+  payload: {
+    serviceName: 'cats',
+    method: 'create',
+    args: {
+      data: {
+        name: 'fluffy'
+      },
+      query: {}
+    }
+  }
+})
 
-const reducer = createReducer({Resource: Things})
-const store = createStore(reducer, {}, enhancer)
+// TODO how can dispatch return the observable or a cid?
+// we need to be able to cancel the query.
+cats.actions.cancel(cid)
+
+// then to communicate with the reducer, the epic dispatches
+// used in find and get queries
+cats.actions.set(id, data)
+
+// otherwise epic sends create, update, patch, remove actions
+
+// and to keep track of started, errored, or completed queries
+const request = {
+  cid: 'abcd',
+  serviceName: 'cats',
+  methods: 'create',
+  args: {
+    // ...
+  }
+}
+// the epic dispatches these actions
+cats.actions.start(request)
+cats.actions.complete(request)
+cats.actions.error(request)
 ```
 
-### const middleware = createMiddleware(opts={})
-Creates a new middleware to pass to `redux.createStore`.
-Valid `opts` keys include:
-- `client` (required) - the feathers client instance..
+## Data Models
 
-eg:
-```js
-const { createMiddleware } = require('feathers-action')
-const { createStore, applyMiddleware } = require('redux')
-const feathers = require('feathers/client')
+### State
 
-const client = feathers().configure(...)
-
-const middleware = createMiddleware({ client })
-const enhancer = applyMiddleware(middleware) 
-const store = createStore(state => state, {}, enhancer)
+```
+{
+  cats: {},
+  dogs: {},
+  feathersAction: {
+    requests: {}
+  }
+}
 ```
 
-### const actions = createActions(opts={})
-Creates a new set of actions for the `Resource` passed to `opts`.
-Valid `opts` keys include:
-- `Resource` (required) - a named `tcomb` list type.
-
-eg:
 ```js
-const { createActions } = require('feathers-action')
-const Tc = require('tcomb')
+// NOT THIS
+{
+  records,
+  requests: {
+    [cid]: {
+      status: 'pending' | 'success' | 'error',
+      serviceName: 'dogs',
+      methods: 'create',
+      previous: {}, // if update, store previous record at id, in case of rollback
+      args: {},
+      result: {},
+      error: {}
+    }
+  }
+}
+```
 
-const Thing = Tc.struct({
-  id: Tc.maybe(Tc.Number),
-  name: Tc.String
-}, 'Thing')
+Pending is an object of "start action payloads"
 
-const Things = Tc.list(Thing, 'Things')
-const actions = createActions({ Resource: Things })
+### Call
+
+```js
+```
+
+### Start
+
+```
+{
+  type: 'FEATHERS_DOGS_CREATE_START',
+  payload: {
+    service: dogs,
+    serviceName: 'dogs', // ?
+    method: 'create', // ?
+    args: {
+      data: {},
+      query: {}
+    }
+  },
+  meta: {
+    cid: 'abcd'
+  }
+}
+```
+
+### Success
+
+```
+{
+  type: 'FEATHERS_DOGS_CREATE_SUCCESS',
+  payload: { // exactly what is returned by feathers
+    id: 1,
+    name: 'doggie'
+  },
+  meta: {
+    cid: 'abcd'
+  }
+}
+```
+
+### Error
+
+```
+{
+  type: 'FEATHERS_DOGS_CREATE_ERROR',
+  payload: new Error('...'), // whatever error is returned
+  error: true,
+  meta: {
+    cid: 'abcd'
+  }
+}
+```
+
+### Getters
+
+```
+{
+  records,
+  pending,
+  success,
+  errors,
+  isPending,
+  isError
+}
 ```
 
 ## Install

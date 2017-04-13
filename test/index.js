@@ -18,37 +18,53 @@ const createMiddleware = feathersAction.createMiddleware
 
 const Resource = types.Resource
 
-test('integrates redux, feathers, and tcomb', function (t) {
-  const app = createTestApp([Resource])
+test('integrates redux and feathers', function (t) {
+  const resources = ['cats', 'dogs']
+  const app = createTestApp(resources)
+  const services = feathersAction([
+    'cats',
+    'dogs'
+  ])
+  const cats = feathersAction({
+    name: 'cats'
+    idField: 'id'
+  })
+  const dogs = feathersAction('dogs')
 
-  const reducer = createReducer({ Resource })
-  const actions = createActions({ Resource })
-  const middleware = createMiddleware({ Resource, client: app })
-
+  const middleware = feathersAction.middleware({
+    client,
+    services: [
+      'cats',
+      'dogs'
+    ]
+  })
   const store = createTestStore(reducer, middleware)
 
-  store.dispatch(actions.find())
+  // cats.reducer is the reducer
+  // cats.actions.find
+
+  store.dispatch(cats.actions.find())
   .then(function (action) {
     t.notOk(action.error)
     t.deepEqual(action.payload, [])
   })
 
-  console.log('actions.get(0)', actions.get(0))
+  console.log('actions.get(0)', cats.actions.get(0))
 
-  store.dispatch(actions.get(0))
+  store.dispatch(cats.actions.get(0))
   .catch(function (action) {
     t.ok(action.error)
     t.equal(action.payload.code, 404)
   })
 
   store.dispatch(
-    actions.create({ name: 'tree' })
+    cats.actions.create({ name: 'tree' })
   )
   .then(function (action) {
     t.notOk(action.error)
     t.deepEqual(action.payload, { name: 'tree', id: 0 })
 
-    return store.dispatch(actions.get(0))
+    return store.dispatch(cats.actions.get(0))
   })
   .then(function (action) {
     t.notOk(action.error)
