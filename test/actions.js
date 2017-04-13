@@ -2,32 +2,41 @@
 
 const test = require('tape')
 
-const feathersAction = require('../src/')
+const feathersAction = require('../')
 
 const cats = feathersAction('cats')
 
 test('action creators have correct keys', function (t) {
-  const keys = ['create, update, patch, remove, start, complete, error']
+  const keys = ['find', 'get', 'create', 'update', 'patch', 'remove', 'set', 'requestStart', 'requestComplete', 'requestError']
   t.deepEqual(Object.keys(cats.actions), keys)
   t.end()
 })
 
 test('start', function(t) {
   const expectedAction = {
-    type: 'REQUEST_START' //this?
-    cid: 'abcd',
-    serviceName: 'cats',
-    methods: 'create',
-    args: {
-      data: {
-        name: 'fluffy'  
+    type: 'FEATHERS_REQUEST_START',
+    payload: {
+      service: 'cats',
+      methods: 'create',
+      args: {
+        data: {
+          name: 'fluffy'  
+        }
       }
+    },
+    meta: {
+      cid: 'abcd'
     }
   }
 
-  const action = cats.actions.start({ 
+  const action = cats.actions.requestStart('abcd', { 
+    service: 'cats',
     methods: 'create',
-    args: {name: 'fluffy'}
+    args: {
+      data: {
+        name: 'fluffy'
+      }
+    }
   })
 
   t.deepEqual(action, expectedAction)
@@ -35,57 +44,91 @@ test('start', function(t) {
 })
 
 test('complete', function(t) {
-
   const expectedAction = {
-    type: 'REQUEST_COMPLETE' //this?
-    cid: 'abcd',
-    args: {
-      data: {
-        name: 'fluffy'  
+    type: 'FEATHERS_REQUEST_COMPLETE',
+    payload: {
+      service: 'cats',
+      methods: 'create',
+      args: {
+        data: {
+          name: 'fluffy'  
+        }
       }
+    },
+    meta: {
+      cid: 'abcd'
     }
   }
 
-  const action = cats.actions.complete({ 
-    cid: 'abcd',
-    args: {name: 'fluffy'}
-  })
+  const action = cats.actions.requestComplete('abcd')
 
   t.deepEqual(action, expectedAction)
   t.end()
 })
 
 test('error', function(t) {
+  const err = new Error('request failed, omg.')
 
   const expectedAction = {
-    type: 'REQUEST_ERROR' //this?
-    cid: 'abcd',
-    args: {
-      error: 'fluffy'
+    type: 'FEATHERS_REQUEST_ERROR',
+    payload: err,
+    error: true,
+    meta: {
+      cid: 'abcd'
     }
   }
 
-  const action = cats.actions.error({ 
-    cid: 'abcd',
-    args: {error: 'fluffy'}
-  })
+  const action = cats.actions.requestError('abcd', err)
 
   t.deepEqual(action, expectedAction)
   t.end()
 })
 
-test('create returns the correct action', function(t) {
-  const createAction = cats.actions.create({name: 'fluffy'})
+test('find returns the correct action', function(t) {
+  const findAction = cats.actions.find({})
   const expectedAction = {
     type: 'FEATHERS_ACTION',
     payload: {
-      serviceName: 'cats',
+      service: 'cats',
+      method: 'find',
+      args: {
+        params: {}
+      }
+    }
+  } 
+  t.deepEqual(findAction, expectedAction)
+  t.end()
+})
+
+test('get returns the correct action', function(t) {
+  const getAction = cats.actions.get(1)
+  const expectedAction = {
+    type: 'FEATHERS_ACTION',
+    payload: {
+      service: 'cats',
+      method: 'get',
+      args: {
+        id: 1,
+        params: {}
+      }
+    }
+  } 
+  t.deepEqual(getAction, expectedAction)
+  t.end()
+})
+
+test('create returns the correct action', function(t) {
+  const createAction = cats.actions.create({ name: 'fluffy' })
+  const expectedAction = {
+    type: 'FEATHERS_ACTION',
+    payload: {
+      service: 'cats',
       method: 'create',
       args: {
         data: {
           name: 'fluffy'
         },
-        query: {}
+        params: {}
       }
     }
   } 
@@ -93,60 +136,60 @@ test('create returns the correct action', function(t) {
   t.end()
 })
 
-test('find returns the correct action', function(t) {
-  const createAction = cats.actions.create({name: 'fluffy'})
+test('update returns the correct action', function(t) {
+  const updateAction = cats.actions.update(1, { id: 1, name: 'fluffy' })
   const expectedAction = {
     type: 'FEATHERS_ACTION',
     payload: {
-      serviceName: 'cats',
-      method: 'find',
+      service: 'cats',
+      method: 'update',
       args: {
-        data: {
-          name: 'fluffy'
-        },
-        query: {}
-      }
-    }
-  } 
-  t.deepEqual(createAction, expectedAction)
-  t.end()
-})
-
-test('patch returns the correct action', function(t) {
-  const createAction = cats.actions.create({id: 1, name: 'fluffy'})
-  const expectedAction = {
-    type: 'FEATHERS_ACTION',
-    payload: {
-      serviceName: 'cats',
-      method: 'patch',
-      args: {
+        id: 1,
         data: {
           id: 1,
           name: 'fluffy'
         },
-        query: {}
+        params: {}
       }
     }
   } 
-  t.deepEqual(createAction, expectedAction)
+  t.deepEqual(updateAction, expectedAction)
+  t.end()
+})
+
+test('patch returns the correct action', function(t) {
+  const patchAction = cats.actions.patch(1, { name: 'fluffy'})
+  const expectedAction = {
+    type: 'FEATHERS_ACTION',
+    payload: {
+      service: 'cats',
+      method: 'patch',
+      args: {
+        id: 1,
+        data: {
+          name: 'fluffy'
+        },
+        params: {}
+      }
+    }
+  } 
+  t.deepEqual(patchAction, expectedAction)
   t.end()
 })
 
 test('remove returns the correct action', function(t) {
-  const createAction = cats.actions.create({id: 1})
+  const removeAction = cats.actions.remove(1)
   const expectedAction = {
     type: 'FEATHERS_ACTION',
     payload: {
-      serviceName: 'cats',
+      service: 'cats',
       method: 'remove',
       args: {
-        data: {
-          id: 1
-        },
-        query: {}
+        id: 1,
+        params: {}
       }
     }
   } 
-  t.deepEqual(createAction, expectedAction)
+  t.deepEqual(removeAction, expectedAction)
   t.end()
 })

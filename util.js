@@ -36,5 +36,5 @@ module.exports = {
     return reduce(array, function (sofar, next) {
       return assign(sofar, { [next]: next })
     }, {})
-  },
+  }
 }

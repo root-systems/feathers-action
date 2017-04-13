@@ -2,21 +2,21 @@
 
 const test = require('tape')
 
-const feathersAction = require('../src/')
+const feathersAction = require('../')
 
-test('feathersAction.middleware is a function', function(t) {
+test('feathersAction.middleware is a function', function (t) {
   t.equal(typeof feathersAction.middleware, 'function')
   t.end()
 })
 
-test('featherAction.middleware returns middleware', function(t) {
+test('featherAction.middleware returns middleware', function (t) {
   const client = {}
   const middlware = feathersAction.middleware(client)
   t.ok(middleware)
   t.end()
 })
 
-test('middleware throws if not passed the client', function(t) {
-  t.throws(() => feathersAction.middleware()) 
+test('middleware throws if not passed the client', function (t) {
+  t.throws(() => feathersAction.middleware())
   t.end()
 })
