@@ -10,9 +10,9 @@ const cats = feathersAction('cats')
 
 test('action creators have correct keys', function (t) {
   const keys = ['find', 'create', 'get', 'update', 'patch', 'remove', 'set', 'requestStart', 'requestComplete', 'requestError']
-  const hasActions = has(__, keys)
+  const hasActions = has(__, cats.actions)
   const hasAllActions = all(hasActions) 
-  t.true(hasAllActions(cats.actions))
+  t.true(hasAllActions(keys))
   t.end()
 })
 
