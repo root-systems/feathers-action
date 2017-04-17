@@ -2,17 +2,21 @@
 
 const test = require('tape')
 
+const { all, has, __ } = require('ramda')
+
 const feathersAction = require('../')
 
 const cats = feathersAction('cats')
 
 test('action creators have correct keys', function (t) {
-  const keys = ['find', 'get', 'create', 'update', 'patch', 'remove', 'set', 'requestStart', 'requestComplete', 'requestError']
-  t.deepEqual(Object.keys(cats.actions), keys)
+  const keys = ['find', 'create', 'get', 'update', 'patch', 'remove', 'set', 'requestStart', 'requestComplete', 'requestError']
+  const hasActions = has(__, keys)
+  const hasAllActions = all(hasActions) 
+  t.true(hasAllActions(cats.actions))
   t.end()
 })
 
-test('start', function(t) {
+test('start', function (t) {
   const expectedAction = {
     type: 'FEATHERS_REQUEST_START',
     payload: {
@@ -20,7 +24,7 @@ test('start', function(t) {
       methods: 'create',
       args: {
         data: {
-          name: 'fluffy'  
+          name: 'fluffy'
         }
       }
     },
@@ -29,7 +33,7 @@ test('start', function(t) {
     }
   }
 
-  const action = cats.actions.requestStart('abcd', { 
+  const action = cats.actions.requestStart('abcd', {
     service: 'cats',
     methods: 'create',
     args: {
@@ -43,7 +47,7 @@ test('start', function(t) {
   t.end()
 })
 
-test('complete', function(t) {
+test('complete', function (t) {
   const expectedAction = {
     type: 'FEATHERS_REQUEST_COMPLETE',
     payload: {
@@ -51,7 +55,7 @@ test('complete', function(t) {
       methods: 'create',
       args: {
         data: {
-          name: 'fluffy'  
+          name: 'fluffy'
         }
       }
     },
@@ -66,7 +70,7 @@ test('complete', function(t) {
   t.end()
 })
 
-test('error', function(t) {
+test('error', function (t) {
   const err = new Error('request failed, omg.')
 
   const expectedAction = {
@@ -84,7 +88,7 @@ test('error', function(t) {
   t.end()
 })
 
-test('find returns the correct action', function(t) {
+test('find returns the correct action', function (t) {
   const findAction = cats.actions.find({})
   const expectedAction = {
     type: 'FEATHERS_ACTION',
@@ -95,12 +99,12 @@ test('find returns the correct action', function(t) {
         params: {}
       }
     }
-  } 
+  }
   t.deepEqual(findAction, expectedAction)
   t.end()
 })
 
-test('get returns the correct action', function(t) {
+test('get returns the correct action', function (t) {
   const getAction = cats.actions.get(1)
   const expectedAction = {
     type: 'FEATHERS_ACTION',
@@ -112,12 +116,12 @@ test('get returns the correct action', function(t) {
         params: {}
       }
     }
-  } 
+  }
   t.deepEqual(getAction, expectedAction)
   t.end()
 })
 
-test('create returns the correct action', function(t) {
+test('create returns the correct action', function (t) {
   const createAction = cats.actions.create({ name: 'fluffy' })
   const expectedAction = {
     type: 'FEATHERS_ACTION',
@@ -131,12 +135,12 @@ test('create returns the correct action', function(t) {
         params: {}
       }
     }
-  } 
+  }
   t.deepEqual(createAction, expectedAction)
   t.end()
 })
 
-test('update returns the correct action', function(t) {
+test('update returns the correct action', function (t) {
   const updateAction = cats.actions.update(1, { id: 1, name: 'fluffy' })
   const expectedAction = {
     type: 'FEATHERS_ACTION',
@@ -152,12 +156,12 @@ test('update returns the correct action', function(t) {
         params: {}
       }
     }
-  } 
+  }
   t.deepEqual(updateAction, expectedAction)
   t.end()
 })
 
-test('patch returns the correct action', function(t) {
+test('patch returns the correct action', function (t) {
   const patchAction = cats.actions.patch(1, { name: 'fluffy'})
   const expectedAction = {
     type: 'FEATHERS_ACTION',
@@ -172,12 +176,12 @@ test('patch returns the correct action', function(t) {
         params: {}
       }
     }
-  } 
+  }
   t.deepEqual(patchAction, expectedAction)
   t.end()
 })
 
-test('remove returns the correct action', function(t) {
+test('remove returns the correct action', function (t) {
   const removeAction = cats.actions.remove(1)
   const expectedAction = {
     type: 'FEATHERS_ACTION',
@@ -189,7 +193,7 @@ test('remove returns the correct action', function(t) {
         params: {}
       }
     }
-  } 
+  }
   t.deepEqual(removeAction, expectedAction)
   t.end()
 })
