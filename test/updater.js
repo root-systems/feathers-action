@@ -3,7 +3,7 @@
 const test = require('tape')
 const deepFreeze = require('deep-freeze')
 
-const feathersAction = require('../src/')
+const feathersAction = require('../')
 const cats = feathersAction('cats')
 
 const catsRecords = {
