@@ -31,7 +31,7 @@ test('updater returns correct default state', function(t) {
 })
 
 test('set sets the new state by id', function (t) {
-  const { actions, update } = cats 
+  const { actions, updater } = cats 
   const expectedState = Object.assign({}, defaultState, {cats: {0: cat}})
   const action = actions.set(0, cat)
 
@@ -48,7 +48,6 @@ test('start', function (t) {
     
     }
   }
-  //not sure about the api of start action here.
   const action = actions.start(request)
 
   const newState = updater(action)(state)
