@@ -16,7 +16,7 @@ test('action creators have correct keys', function (t) {
   t.end()
 })
 
-test('start', function (t) {
+test('request start', function (t) {
   const expectedAction = {
     type: 'FEATHERS_REQUEST_START',
     payload: {
@@ -47,32 +47,27 @@ test('start', function (t) {
   t.end()
 })
 
-test('complete', function (t) {
+test('request complete', function (t) {
+  const result = {
+    id: 1,
+    name: 'fluffy'
+  }
   const expectedAction = {
     type: 'FEATHERS_REQUEST_COMPLETE',
-    payload: {
-      service: 'cats',
-      methods: 'create',
-      args: {
-        data: {
-          name: 'fluffy'
-        }
-      }
-    },
+    payload: result,
     meta: {
       cid: 'abcd'
     }
   }
 
-  const action = cats.actions.requestComplete('abcd')
+  const action = cats.actions.requestComplete('abcd', result)
 
   t.deepEqual(action, expectedAction)
   t.end()
 })
 
-test('error', function (t) {
+test('request error', function (t) {
   const err = new Error('request failed, omg.')
-
   const expectedAction = {
     type: 'FEATHERS_REQUEST_ERROR',
     payload: err,
