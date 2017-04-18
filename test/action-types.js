@@ -3,8 +3,8 @@ const { FEATHERS_ACTION } = require('../constants')
 
 const createActionTypes = require('../action-types')
 
-test('returns the action ids', function (t) {
-  const actionTypes = createActionTypes({ service: 'cats' })
+test('returns the service action ids', function (t) {
+  const actionTypes = createActionTypes.service({ service: 'cats' })
 
   t.equal(actionTypes.find, FEATHERS_ACTION)
   t.equal(actionTypes.get, FEATHERS_ACTION)
@@ -15,9 +15,15 @@ test('returns the action ids', function (t) {
 
   t.equal(actionTypes.set, 'FEATHERS_CATS_SET')
 
-  t.equal(actionTypes.requestStart, 'FEATHERS_REQUEST_START')
-  t.equal(actionTypes.requestComplete, 'FEATHERS_REQUEST_COMPLETE')
-  t.equal(actionTypes.requestError, 'FEATHERS_REQUEST_ERROR')
+  t.end()
+})
+
+test('returns the request action ids', function (t) {
+  const actionTypes = createActionTypes.request()
+
+  t.equal(actionTypes.start, 'FEATHERS_REQUEST_START')
+  t.equal(actionTypes.complete, 'FEATHERS_REQUEST_COMPLETE')
+  t.equal(actionTypes.error, 'FEATHERS_REQUEST_ERROR')
 
   t.end()
 })

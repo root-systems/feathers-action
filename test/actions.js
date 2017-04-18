@@ -4,14 +4,14 @@ const test = require('tape')
 
 const { all, has, __ } = require('ramda')
 
-const feathersAction = require('../')
+const { createService } = require('../')
 
-const cats = feathersAction('cats')
+const cats = createService('cats')
 
 test('action creators have correct keys', function (t) {
   const keys = ['find', 'create', 'get', 'update', 'patch', 'remove', 'set', 'requestStart', 'requestComplete', 'requestError']
   const hasActions = has(__, cats.actions)
-  const hasAllActions = all(hasActions) 
+  const hasAllActions = all(hasActions)
   t.true(hasAllActions(keys))
   t.end()
 })
@@ -157,7 +157,7 @@ test('update returns the correct action', function (t) {
 })
 
 test('patch returns the correct action', function (t) {
-  const patchAction = cats.actions.patch(1, { name: 'fluffy'})
+  const patchAction = cats.actions.patch(1, { name: 'fluffy' })
   const expectedAction = {
     type: 'FEATHERS_ACTION',
     payload: {

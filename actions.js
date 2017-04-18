@@ -17,13 +17,14 @@ function createActionCreators (options) {
     methods = DEFAULT_METHODS
   } = options
 
-  const actionTypes = createActionTypes(options)
+  const actionTypes = createActionTypes.service(options)
+  const requestTypes = createActionTypes.request(options)
 
   const getActionCreatorsForMethods = pipe(
     invertObj,
     mapObjIndexed((_, method) => Action(method, argsCreatorByMethod[method]))
   )
-  
+
   return merge(
     getActionCreatorsForMethods(methods),
     {
@@ -44,21 +45,21 @@ function createActionCreators (options) {
 
   function requestStart (cid, call) {
     return {
-      type: actionTypes.requestStart,
+      type: requestTypes.start,
       payload: call,
       meta: { cid }
     }
   }
   function requestComplete (cid, result) {
     return {
-      type: actionTypes.requestComplete,
+      type: requestTypes.complete,
       payload: result,
       meta: { cid }
     }
   }
   function requestError (cid, err) {
     return {
-      type: actionTypes.requestError,
+      type: requestTypes.error,
       payload: err,
       error: true,
       meta: { cid }

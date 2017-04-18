@@ -4,27 +4,42 @@ const { isArray } = Array
 const is = require('typeof-is')
 const pipe = require('ramda/src/pipe')
 const indexBy = require('ramda/src/indexBy')
+const prop = require('ramda/src/prop')
 const map = require('ramda/src/map')
 
 const createActions = require('./actions')
+const createUpdater = require('./updater')
 
-module.exports = createModule
+module.exports = {
+  createService: createServiceModule,
+  createRequest: createRequestModule
+}
 
-function createModule (options = {}) {
+function createServiceModule (options = {}) {
   if (is.string(options)) {
     options = { service: options }
   }
 
   if (isArray(options)) {
-    return createModules(options)
+    return createServiceModules(options)
   }
 
+  const { service } = options
+
   return {
-    actions: createActions(options)
+    service,
+    actions: createActions(options),
+    updater: createUpdater.service(options)
   }
 }
 
-const createModules = pipe(
-  map(createModule),
-  indexBy
+const createServiceModules = pipe(
+  map(createServiceModule),
+  indexBy(prop('service'))
 )
+
+function createRequestModule () {
+  return {
+    updater: createUpdater.request()
+  }
+}

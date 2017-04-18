@@ -10,9 +10,12 @@ const join = require('ramda/src/join')
 
 const { FEATHERS_ACTION, DEFAULT_METHODS } = require('./constants')
 
-module.exports = createActionTypes
+module.exports = {
+  service: createServiceActionTypes,
+  request: createRequestActionTypes
+}
 
-function createActionTypes (options) {
+function createServiceActionTypes (options) {
   const {
     service,
     methods = DEFAULT_METHODS
@@ -20,13 +23,16 @@ function createActionTypes (options) {
 
   return merge(
     getActionTypesForMethods(methods),
-    {
-      set: createActionType([service, 'set']),
-      requestStart: createActionType(['request', 'start']),
-      requestComplete: createActionType(['request', 'complete']),
-      requestError: createActionType(['request', 'error'])
-    }
+    { set: createActionType([service, 'set']) }
   )
+}
+
+function createRequestActionTypes () {
+  return {
+    start: createActionType(['request', 'start']),
+    complete: createActionType(['request', 'complete']),
+    error: createActionType(['request', 'error'])
+  }
 }
 
 const createActionType = pipe(
