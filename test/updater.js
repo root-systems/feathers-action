@@ -30,33 +30,15 @@ test('updater returns correct default state', function(t) {
   t.end()
 })
 
-test('find', function (t) {
-})
-
-test('get', function (t) {
-})
-
-test('create', function (t) {
-})
-
-test('update', function (t) {
-})
-
-test('patch', function (t) {
-})
-
-test('remove', function (t) {
+test('set sets the new state by id', function (t) {
   const { actions, update } = cats 
-  const state = Object.assign({}, defaultState, {cats: {[cat.id]: cat} })
-  deepFreeze(state)
-  const action = actions.remove({ id: cat.id })
+  const expectedState = Object.assign({}, defaultState, {cats: {0: cat}})
+  const action = actions.set(0, cat)
 
   const newState = updater(action)(state)
-
-  t.deepEqual(newState.cats, {})
-  t.ok(newState.requests)
-  t.end()
+  t.deepEqual(newState, expectedState)
 })
+
 
 test('start', function (t) {
   const { actions, update } = cats 
