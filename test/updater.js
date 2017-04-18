@@ -37,21 +37,26 @@ test('set sets the new state by id', function (t) {
 
   const newState = updater(action)(state)
   t.deepEqual(newState, expectedState)
+  t.end()
 })
 
 
-test('start', function (t) {
-  const { actions, update } = cats 
+test('start sets the request at the cid in feathersRequest', function (t) {
+  const { actions, updater } = cats 
+  const cid = 'abcd'
   const request = {
     method: 'create'
+    service: 'cats'
     args: {
     
     }
   }
-  const action = actions.start(request)
+  const expectedState = Object.assign({}, defaultState, {feathersAction: requests: {[cid]: request}})
+
+  const action = actions.start(cid, request)
 
   const newState = updater(action)(state)
-  t.ok(newState.requests[action.cid])
+  t.deepEqual(newState, expectedState)
   t.end()
 })
 
