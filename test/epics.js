@@ -41,7 +41,7 @@ test('create is handled by epic and emits request start action', function(t) {
   }
 
   epics(action$, {}, client)  
-    .filter({type} => type === 'FEATHERS_REQUEST_START' )
+    .filter(({type}) => type === 'FEATHERS_REQUEST_START' )
     .subscribe((action) => {
       t.ok(action)
       t.end()
@@ -58,7 +58,7 @@ test('create is handled by epic and emits set action', function(t) {
   }
 
   epics(action$, {}, client)  
-    .filter({type} => type === 'FEATHERS_CATS_SET' )
+    .filter(({type}) => type === 'FEATHERS_CATS_SET' )
     .subscribe((action) => {
       t.ok(action)
       t.end()
@@ -76,7 +76,7 @@ test('create is handled by epic and emits set action', function(t) {
   }
   //TODO: collect up the actions?
   epics(action$, {}, client)
-    .filter({type} => type === 'FEATHERS_CATS_SET' )
+    .filter(({type}) => type === 'FEATHERS_CATS_SET' )
     .subscribe((action) => {
       t.ok(action)
       t.end()
