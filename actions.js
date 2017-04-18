@@ -5,7 +5,7 @@ const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const merge = require('ramda/src/merge')
 const invertObj = require('ramda/src/invertObj')
 
-const { FEATHERS, DEFAULT_METHODS } = require('./constants')
+const { DEFAULT_METHODS } = require('./constants')
 
 const createActionTypes = require('./action-types')
 
@@ -13,7 +13,6 @@ module.exports = createActionCreators
 
 function createActionCreators (options) {
   const {
-    service,
     methods = DEFAULT_METHODS
   } = options
 

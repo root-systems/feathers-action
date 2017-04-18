@@ -1,7 +1,8 @@
 'use strict'
 
-const merge = require('ramda/src/merge')
 const assoc = require('ramda/src/assoc')
+const assocPath = require('ramda/src/assocPath')
+const pipe = require('ramda/src/pipe')
 const { withDefaultState, concat, updateStateAt, handleActions, decorate } = require('redux-fp')
 
 const createActionTypes = require('./action-types')
@@ -37,36 +38,29 @@ function createServiceUpdater (actionTypes, service) {
 
 function createRequestUpdater (actionTypes) {
   const requestUpdateHandlers = {
-    [actionTypes.start]: action => {
+    [actionTypes.requestStart]: action => {
       const { cid } = action.meta
       return assoc(cid, action.payload)
     },
-    [actionTypes.complete]: action => {
+    [actionTypes.requestSuccess]: action => {
       const { cid } = action.meta
       const result = action.payload
       const error = null
-      // TODO clean this up with ramda
-      return state => {
-        return assoc(
-          cid,
-          merge(state[cid], { result, error }),
-          state
-        )
-      }
+      return handleComplete({ cid, result, error })
     },
-    [actionTypes.error]: action => {
+    [actionTypes.requestError]: action => {
       const { cid } = action.meta
       const result = null
       const error = action.payload
-      // TODO clean this up with ramda
-      return state => {
-        return assoc(
-          cid,
-          merge(state[cid], { result, error }),
-          state
-        )
-      }
+      return handleComplete({ cid, result, error })
     }
+  }
+
+  function handleComplete ({ cid, result, error }) {
+    return pipe(
+      assocPath([cid, 'result'], result),
+      assocPath([cid, 'error'], error)
+    )
   }
 
   return decorate(
