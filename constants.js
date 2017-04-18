@@ -1,12 +1,12 @@
 'use strict'
 
-const FEATHERS_ACTION = 'FEATHERS_ACTION'
+const FEATHERS = 'FEATHERS'
 
 const DEFAULT_ID_FIELD = 'id'
 const DEFAULT_METHODS = ['find', 'get', 'create', 'update', 'patch', 'remove']
 
 module.exports = {
-  FEATHERS_ACTION,
+  FEATHERS,
   DEFAULT_ID_FIELD,
   DEFAULT_METHODS
 }

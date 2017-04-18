@@ -10,36 +10,27 @@ const map = require('ramda/src/map')
 const createActions = require('./actions')
 const createUpdater = require('./updater')
 
-module.exports = {
-  createService: createServiceModule,
-  createRequest: createRequestModule
-}
+module.exports = createModule
 
-function createServiceModule (options = {}) {
+function createModule (options = {}) {
   if (is.string(options)) {
     options = { service: options }
   }
 
   if (isArray(options)) {
-    return createServiceModules(options)
+    return createModules(options)
   }
 
   const { service } = options
 
   return {
-    service,
+    name: service,
     actions: createActions(options),
-    updater: createUpdater.service(options)
+    updater: createUpdater(options)
   }
 }
 
-const createServiceModules = pipe(
-  map(createServiceModule),
-  indexBy(prop('service'))
+const createModules = pipe(
+  map(createModule),
+  indexBy(prop('name'))
 )
-
-function createRequestModule () {
-  return {
-    updater: createUpdater.request()
-  }
-}

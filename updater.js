@@ -2,20 +2,24 @@
 
 const merge = require('ramda/src/merge')
 const assoc = require('ramda/src/assoc')
-const { withDefaultState, updateStateAt, handleActions, decorate } = require('redux-fp')
+const { withDefaultState, concat, updateStateAt, handleActions, decorate } = require('redux-fp')
 
 const createActionTypes = require('./action-types')
 
-module.exports = {
-  service: createServiceUpdater,
-  request: createRequestUpdater
-}
+module.exports = createUpdater
 
-function createServiceUpdater (options) {
+function createUpdater (options) {
   const { service } = options
 
-  const actionTypes = createActionTypes.service(options)
+  const actionTypes = createActionTypes(options)
 
+  return concat(
+    createServiceUpdater(actionTypes, service),
+    createRequestUpdater(actionTypes)
+  )
+}
+
+function createServiceUpdater (actionTypes, service) {
   const serviceUpdateHandlers = {
     [actionTypes.set]: (action) => {
       const { id, data } = action.payload
@@ -31,9 +35,7 @@ function createServiceUpdater (options) {
   )
 }
 
-function createRequestUpdater (options) {
-  const actionTypes = createActionTypes.request(options)
-
+function createRequestUpdater (actionTypes) {
   const requestUpdateHandlers = {
     [actionTypes.start]: action => {
       const { cid } = action.meta

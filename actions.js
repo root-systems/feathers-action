@@ -5,7 +5,7 @@ const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const merge = require('ramda/src/merge')
 const invertObj = require('ramda/src/invertObj')
 
-const { FEATHERS_ACTION, DEFAULT_METHODS } = require('./constants')
+const { FEATHERS, DEFAULT_METHODS } = require('./constants')
 
 const createActionTypes = require('./action-types')
 
@@ -17,8 +17,7 @@ function createActionCreators (options) {
     methods = DEFAULT_METHODS
   } = options
 
-  const actionTypes = createActionTypes.service(options)
-  const requestTypes = createActionTypes.request(options)
+  const actionTypes = createActionTypes(options)
 
   const getActionCreatorsForMethods = pipe(
     invertObj,
@@ -31,7 +30,7 @@ function createActionCreators (options) {
       // special
       set,
       requestStart,
-      requestComplete,
+      requestSuccess,
       requestError
     }
   )
@@ -45,21 +44,21 @@ function createActionCreators (options) {
 
   function requestStart (cid, call) {
     return {
-      type: requestTypes.start,
+      type: actionTypes.requestStart,
       payload: call,
       meta: { cid }
     }
   }
-  function requestComplete (cid, result) {
+  function requestSuccess (cid, result) {
     return {
-      type: requestTypes.complete,
+      type: actionTypes.requestSuccess,
       payload: result,
       meta: { cid }
     }
   }
   function requestError (cid, err) {
     return {
-      type: requestTypes.error,
+      type: actionTypes.requestError,
       payload: err,
       error: true,
       meta: { cid }
@@ -68,12 +67,8 @@ function createActionCreators (options) {
 
   function Action (method, argsCreator) {
     return (...args) => ({
-      type: FEATHERS_ACTION,
-      payload: {
-        service,
-        method,
-        args: argsCreator(...args)
-      }
+      type: actionTypes[method],
+      payload: argsCreator(...args)
     })
   }
 }

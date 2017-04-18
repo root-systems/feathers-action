@@ -6,42 +6,44 @@ const invertObj = require('ramda/src/invertObj')
 const prepend = require('ramda/src/prepend')
 const toUpper = require('ramda/src/toUpper')
 const map = require('ramda/src/map')
+const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const join = require('ramda/src/join')
 
-const { FEATHERS_ACTION, DEFAULT_METHODS } = require('./constants')
+const { FEATHERS, DEFAULT_METHODS } = require('./constants')
 
-module.exports = {
-  service: createServiceActionTypes,
-  request: createRequestActionTypes
-}
+module.exports = createActionTypes
 
-function createServiceActionTypes (options) {
+function createActionTypes (options) {
   const {
     service,
     methods = DEFAULT_METHODS
   } = options
 
+  const createActionType = ActionType(service)
+
   return merge(
-    getActionTypesForMethods(methods),
-    { set: createActionType([service, 'set']) }
+    getActionTypesForMethods(createActionType, methods),
+    {
+      set: createActionType(['set']),
+      requestStart: createActionType(['request', 'start']),
+      requestSuccess: createActionType(['request', 'success']),
+      requestError: createActionType(['request', 'error'])
+    }
   )
 }
 
-function createRequestActionTypes () {
-  return {
-    start: createActionType(['request', 'start']),
-    complete: createActionType(['request', 'complete']),
-    error: createActionType(['request', 'error'])
-  }
+const ActionType = (service) => {
+  return pipe(
+    prepend(service),
+    prepend(FEATHERS),
+    map(toUpper),
+    join('_')
+  )
 }
 
-const createActionType = pipe(
-  prepend('feathers'),
-  map(toUpper),
-  join('_')
-)
-
-const getActionTypesForMethods = pipe(
-  invertObj,
-  map(next => FEATHERS_ACTION)
-)
+const getActionTypesForMethods = (createActionType, methods) => {
+  return pipe(
+    invertObj,
+    mapObjIndexed((_, method) => createActionType([method]))
+  )(methods)
+}
