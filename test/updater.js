@@ -57,11 +57,10 @@ test('start sets the request at the cid in feathersRequest', function (t) {
 
   const newState = updater(action)(state)
   t.deepEqual(newState, expectedState)
-  t.ok(newState.feathersAction.requests[cid].startTime)
   t.end()
 })
 
-test('complete', function (t) {
+test('complete sets the complete time and stores the result', function (t) {
   const { actions, updater } = cats 
   const cid = 'abcd'
   const request = {
@@ -83,11 +82,10 @@ test('complete', function (t) {
 
   const newState = updater(action)(initialState)
   t.deepEqual(newState, expectedState)
-  t.ok(newState.feathersAction.requests[cid].completeTime)
   t.end()
 })
 
-test('error', function (t) {
+test('error sets the completeTime and the error at the cid', function (t) {
   const { actions, updater } = cats 
   const cid = 'abcd'
   const request = {
@@ -108,7 +106,6 @@ test('error', function (t) {
   const action = actions.error(cid, cat)
 
   const newState = updater(action)(initialState)
-  t.ok(newState.feathersAction.requests[cid].completeTime)
   t.ok(newState.feathersAction.requests[cid].error)
   t.end()
 })
