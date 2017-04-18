@@ -61,7 +61,28 @@ test('start sets the request at the cid in feathersRequest', function (t) {
 })
 
 test('complete', function (t) {
+  const { actions, updater } = cats 
+  const cid = 'abcd'
+  const request = {
+    method: 'create'
+    service: 'cats'
+    args: {
+    
+    }
+  }
+  const initialState = Object.assign({}, defaultState, {feathersAction: requests: {[cid]: request}})
+  deepFreeze(initialState)
 
+  const expectedState = Object.assign({}, initialState, {feathersAction: requests: {[cid]: {
+    result: cat,
+    error: null,
+  }}})
+
+  const action = actions.start(cid, cat)
+
+  const newState = updater(action)(initialState)
+  t.deepEqual(newState, expectedState)
+  t.end()
 })
 
 test('error', function (t) {
