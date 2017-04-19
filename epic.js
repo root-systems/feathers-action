@@ -1,11 +1,12 @@
 const Cuid = require('cuid')
 const { combineEpics } = require('redux-observable')
 const is = require('typeof-is')
-const pipe = require('ramda/src/pipe')
+const map = require('ramda/src/map')
+const mapObjIndexed = require('ramda/src/mapObjIndexed')
+const values = require('ramda/src/values')
 // TODO split into individual modules
 const Rx = require('rxjs/Rx')
 
-const { DEFAULT_METHODS } = require('./constants')
 const createActionTypes = require('./action-types')
 const createActionCreators = require('./actions')
 
@@ -14,45 +15,74 @@ module.exports = createEpic
 function createEpic (options) {
   const {
     service,
-    methods = DEFAULT_METHODS,
     createCid = Cuid
   } = options
 
   const actionTypes = createActionTypes(options)
   const actionCreators = createActionCreators(options)
 
-  const epic = combineEpics(
-    create
-  )
+  const epics = createEpics({ actionTypes, actionCreators, service, createCid })
+  return combineEpics(...values(epics))
+}
 
-  return epic
+const requestArgs = {
+  find: ({ params }) => [params],
+  get: ({ id, params }) => [id, params],
+  create: ({ data, params }) => [data, params],
+  update: ({ id, data, params }) => [id, data, params],
+  patch: ({ id, data, params }) => [id, data, params],
+  remove: ({ id, params }) => [id, params]
+}
 
-  function create (action$, state, deps) {
-    assertFeathersDep(deps)
+const createRequestHandlers = actions => {
+  const setAll = map(value => actions.set(value.id, value))
 
-    const { feathers } = deps
-
-    return action$.ofType(actionTypes.create)
-      .mergeMap(action => {
-        const method = 'create'
-        const args = action.payload
-        const cid = createCid()
-        const requestStart = actionCreators.requestStart(cid, {
-          service,
-          method,
-          args
-        })
-        const requestStart$ = Rx.Observable.of(requestStart)
-
-        return Rx.Observable.of(
-          requestStart,
-          feathers.create(args.data. args.params)
-        )
-          .concatAll()
+  return {
+    find: (stream) => stream
+      .map(values => {
+        return Rx.Observable.of(...setAll(values))
       })
+      .concatAll()
+    ,
+    get: () => {},
+    create: () => {},
+    update: () => {},
+    patch: () => {},
+    remove: () => {}
   }
+}
 
-  function callFeathersMethod (feathers, emit, options) {
+const createEpics = ({ actionTypes, actionCreators, service, createCid }) => {
+  const requestHandlers = createRequestHandlers(actionCreators)
+  const mapRequestHandlers = mapObjIndexed((requestHandler, method) => {
+    return (action$, state, deps) => {
+      assertFeathersDep(deps)
+
+      const { feathers } = deps
+
+      const requester = createRequester({ method, feathers })
+
+      return action$.ofType(actionTypes[method])
+        .mergeMap(action => {
+          const args = action.payload
+          const cid = createCid()
+
+          const response = requester(args)
+          const requestAction$ = requestHandler(response)
+
+          return Rx.Observable.of(actionCreators.requestStart(cid, { service, method, args }))
+            .concat(requestAction$)
+            .catch(err => Rx.Observable.of(actionCreators.requestError(cid, err)))
+        })
+    }
+  })
+  return mapRequestHandlers(requestHandlers)
+}
+
+const createRequester = ({ feathers, method }) => {
+  return payload => {
+    const args = requestArgs[method](payload)
+    return feathers[method](...args)
   }
 }
 

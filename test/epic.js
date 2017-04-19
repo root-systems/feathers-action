@@ -1,20 +1,28 @@
 const test = require('tape')
 const Rx = require('rxjs/Rx')
 const Action$ = require('redux-observable/lib/cjs/ActionsObservable').ActionsObservable
-const { propEq } = require('ramda')
+const { values, propEq } = require('ramda')
+
+const catsData = {
+  0: { id: 0, name: 'honey', description: 'sweet and delicious.' },
+  1: { id: 1, name: 'tea' },
+  2: { id: 2, name: 'mug' }
+}
 
 const createActionTypes = require('../action-types')
 const createModule = require('../')
 const cats = createModule('cats')
 const actionTypes = createActionTypes({ service: 'cats' })
 
-test('create action is handled by an epic and emits something', function (t) {
+test('find action is handled by an epic and emits something', function (t) {
+  t.plan(values(catsData).length + 1)
   const action$ = Action$.of(cats.actions.find())
-  const feathers = {}
+  const feathers = {
+    find: () => Rx.Observable.of(values(catsData))
+  }
   cats.epic(action$, undefined, { feathers })
     .subscribe((action) => {
       t.ok(action)
-      t.end()
     })
 })
 
