@@ -9,6 +9,7 @@ const map = require('ramda/src/map')
 
 const createActions = require('./actions')
 const createUpdater = require('./updater')
+const createEpic = require('./epic')
 
 module.exports = createModule
 
@@ -26,7 +27,8 @@ function createModule (options = {}) {
   return {
     name: service,
     actions: createActions(options),
-    updater: createUpdater(options)
+    updater: createUpdater(options),
+    epic: createEpic(options)
   }
 }
 
