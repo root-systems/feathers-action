@@ -1,4 +1,4 @@
-const Cuid = require('cuid')
+const defaultCreateCid = require('cuid')
 const { combineEpics } = require('redux-observable')
 const is = require('typeof-is')
 const map = require('ramda/src/map')
@@ -15,7 +15,7 @@ module.exports = createEpic
 function createEpic (options) {
   const {
     service,
-    createCid = Cuid
+    createCid = defaultCreateCid
   } = options
 
   const actionTypes = createActionTypes(options)
@@ -38,14 +38,35 @@ const createRequestHandlers = actions => {
   const setAll = map(value => actions.set(value.id, value))
 
   return {
-    find: (stream) => stream
-      .map(values => {
-        return Rx.Observable.of(...setAll(values))
-      })
+    find: (response$) => response$
+      .map(values => Rx.Observable.of(...setAll(values)))
       .concatAll()
     ,
-    get: () => {},
-    create: () => {},
+    get: (response$) => response$
+      .map(value => actions.set(value.id, value))
+    ,
+    create: (response$, cid, args) => {
+      const optimistic = actions.set(cid, args.data)
+      const optimistic$ = Rx.Observable.of(optimistic)
+      const removeOptimistic = actions.set(cid, undefined)
+
+      // TODO rollback
+      var isOptimistic = true
+      const responseAction$ = response$
+        .map(value => {
+          var stream = Rx.Observable.of(actions.set(value.id, value))
+
+          if (isOptimistic) {
+            stream = Rx.Observable.of(removeOptimistic)
+              .concat(stream)
+            isOptimistic = false
+          }
+          return stream
+        })
+        .concatAll()
+
+      return optimistic$.concat(responseAction$)
+    },
     update: () => {},
     patch: () => {},
     remove: () => {}
@@ -67,8 +88,8 @@ const createEpics = ({ actionTypes, actionCreators, service, createCid }) => {
           const args = action.payload
           const cid = createCid()
 
-          const response = requester(args)
-          const requestAction$ = requestHandler(response)
+          const response$ = requester(args)
+          const requestAction$ = requestHandler(response$, cid, args)
 
           return Rx.Observable.of(actionCreators.requestStart(cid, { service, method, args }))
             .concat(requestAction$)

@@ -2,6 +2,7 @@
 
 const assoc = require('ramda/src/assoc')
 const assocPath = require('ramda/src/assocPath')
+const dissoc = require('ramda/src/dissoc')
 const pipe = require('ramda/src/pipe')
 const { withDefaultState, concat, updateStateAt, handleActions, decorate } = require('redux-fp')
 
@@ -24,7 +25,10 @@ function createServiceUpdater (actionTypes, service) {
   const serviceUpdateHandlers = {
     [actionTypes.set]: (action) => {
       const { id, data } = action.payload
-      return assoc(id, data)
+      return value => {
+        if (value === undefined) return dissoc(id, path)
+        return assoc(id, data, value)
+      }
     }
   }
 
