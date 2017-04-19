@@ -33,7 +33,8 @@ test('find', function (t) {
     actionCreators.start(cid, { service, method: 'find', args: { params: {} } }),
     actionCreators.set(cid, 0, catsData[0]),
     actionCreators.set(cid, 1, catsData[1]),
-    actionCreators.set(cid, 2, catsData[2])
+    actionCreators.set(cid, 2, catsData[2]),
+    actionCreators.complete(cid)
   ]
   cats.epic(action$, undefined, { feathers })
     .toArray() // .reduce(flip(append), [])
@@ -51,7 +52,8 @@ test('get', function (t) {
   }
   const expected = [
     actionCreators.start(cid, { service, method: 'get', args: { id: 0, params: {} } }),
-    actionCreators.set(cid, 0, catsData[0])
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.complete(cid)
   ]
   cats.epic(action$, undefined, { feathers })
     .toArray()
@@ -71,7 +73,8 @@ test('create', function (t) {
     actionCreators.start(cid, { service, method: 'create', args: { data: newCat, params: {} } }),
     actionCreators.set(cid, cid, newCat),
     actionCreators.set(cid, cid, undefined),
-    actionCreators.set(cid, 0, catsData[0])
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.complete(cid)
   ]
   cats.epic(action$, undefined, { feathers })
     .toArray()

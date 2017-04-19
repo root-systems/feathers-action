@@ -1,8 +1,12 @@
 const { combineEpics } = require('redux-observable')
 const is = require('typeof-is')
 const map = require('ramda/src/map')
+const contains = require('ramda/src/contains')
+const __ = require('ramda/src/__')
 const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const values = require('ramda/src/values')
+const pathEq = require('ramda/src/pathEq')
+const propEq = require('ramda/src/propEq')
 // TODO split into individual modules
 const Rx = require('rxjs/Rx')
 
@@ -84,13 +88,21 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
           const args = action.payload
           const { cid } = action.meta
 
-          const response$ = requester(args)
+          var response$ = requester(args)
+          if (isSingleRequest(method)) {
+            response$ = response$.take(1)
+          }
           const requestAction$ = requestHandler(response$, cid, args)
+
+          const cancelAction$ = action$
+            .filter(isCid(cid))
+            .filter(isType(actionTypes.complete))
 
           return Rx.Observable.of(actionCreators.start(cid, { service, method, args }))
             .concat(requestAction$)
             .catch(err => Rx.Observable.of(actionCreators.error(cid, err)))
-            //.concat(Rx.Observable.of(actionCreators.complete(cid)))
+            .concat(Rx.Observable.of(actionCreators.complete(cid)))
+            .takeUntil(cancelAction$)
         })
     }
   })
@@ -109,3 +121,13 @@ function assertFeathersDep (deps = {}) {
     throw new Error('feathers-action/epic: expected feathers app or client to be given as dependency in redux-observable middleware')
   }
 }
+
+const isSingleRequest = contains(__, [
+  'create',
+  'update',
+  'patch',
+  'remove'
+])
+
+const isCid = pathEq(['meta', 'cid'])
+const isType = propEq('type')
