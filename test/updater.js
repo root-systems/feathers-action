@@ -17,7 +17,7 @@ const catsRecords = {
 const cat = catsRecords[0]
 
 const defaultServiceState = { cats: {} }
-const defaultRequestState = { feathersAction: {} }
+const defaultRequestState = { feathers: {} }
 const defaultState = merge(defaultServiceState, defaultRequestState)
 
 deepFreeze(defaultState)
@@ -30,9 +30,10 @@ test('updater returns correct default state', function (t) {
 })
 
 test('set sets the new state by id', function (t) {
+  const cid = 'abcd'
   const { actions, updater } = cats
   const expectedState = assocPath(['cats', cat.id], cat, defaultState)
-  const action = actions.set(cat.id, cat)
+  const action = actions.set(cid, cat.id, cat)
 
   const newState = updater(action)(defaultServiceState)
   t.deepEqual(newState, expectedState)
@@ -47,9 +48,9 @@ test('start sets the request at the cid', function (t) {
     service: 'cats',
     args: {}
   }
-  const expectedState = assocPath(['feathersAction', cid], call, defaultState)
+  const expectedState = assocPath(['feathers', cid], call, defaultState)
 
-  const action = actions.requestStart(cid, call)
+  const action = actions.start(cid, call)
 
   const newState = updater(action)(defaultState)
   t.deepEqual(newState, expectedState)
@@ -64,13 +65,13 @@ test('success sets the result at the cid', function (t) {
     service: 'cats',
     args: {}
   }
-  const initialState = assocPath(['feathersAction', cid], call, defaultState)
+  const initialState = assocPath(['feathers', cid], call, defaultState)
   deepFreeze(initialState)
 
   const requestState = merge(call, { result: cat, error: null })
-  const expectedState = assocPath(['feathersAction', cid], requestState, initialState)
+  const expectedState = assocPath(['feathers', cid], requestState, initialState)
 
-  const action = actions.requestSuccess(cid, cat)
+  const action = actions.complete(cid, cat)
 
   const newState = updater(action)(initialState)
   t.deepEqual(newState, expectedState)
@@ -85,14 +86,14 @@ test('error sets the error at the cid', function (t) {
     service: 'cats',
     args: {}
   }
-  const initialState = assocPath(['feathersAction', cid], call, defaultState)
+  const initialState = assocPath(['feathers', cid], call, defaultState)
   deepFreeze(initialState)
 
   const err = new Error('oh no')
   const requestState = merge(call, { result: null, error: err })
-  const expectedState = assocPath(['feathersAction', cid], requestState, initialState)
+  const expectedState = assocPath(['feathers', cid], requestState, initialState)
 
-  const action = actions.requestError(cid, err)
+  const action = actions.error(cid, err)
 
   const newState = updater(action)(initialState)
   t.deepEqual(newState, expectedState)

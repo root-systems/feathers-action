@@ -15,8 +15,7 @@ const createActionCreators = require('../actions')
 const createModule = require('../')
 
 const service = 'cats'
-const cats = createModule({ service, createCid })
-const actionTypes = createActionTypes({ service })
+const cats = createModule({ service })
 const actionCreators = createActionCreators({ service })
 
 var currentCid = 100
@@ -25,19 +24,19 @@ function createCid () {
 }
 
 test('find', function (t) {
-  const action$ = Action$.of(cats.actions.find())
+  const cid = createCid()
+  const action$ = Action$.of(cats.actions.find(cid))
   const feathers = {
     find: () => Rx.Observable.of(values(catsData))
   }
-  const cid = currentCid
   const expected = [
-    actionCreators.requestStart(cid, { service, method: 'find', args: { params: {} } }),
-    actionCreators.set(0, catsData[0]),
-    actionCreators.set(1, catsData[1]),
-    actionCreators.set(2, catsData[2])
+    actionCreators.start(cid, { service, method: 'find', args: { params: {} } }),
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.set(cid, 1, catsData[1]),
+    actionCreators.set(cid, 2, catsData[2])
   ]
   cats.epic(action$, undefined, { feathers })
-    .toArray() //.reduce(flip(append), [])
+    .toArray() // .reduce(flip(append), [])
     .subscribe((actions) => {
       t.deepEqual(actions, expected)
       t.end()
@@ -45,14 +44,14 @@ test('find', function (t) {
 })
 
 test('get', function (t) {
-  const action$ = Action$.of(cats.actions.get(0))
+  const cid = createCid()
+  const action$ = Action$.of(cats.actions.get(cid, 0))
   const feathers = {
     get: (id) => Rx.Observable.of(catsData[id])
   }
-  const cid = currentCid
   const expected = [
-    actionCreators.requestStart(cid, { service, method: 'get', args: { id: 0, params: {} } }),
-    actionCreators.set(0, catsData[0])
+    actionCreators.start(cid, { service, method: 'get', args: { id: 0, params: {} } }),
+    actionCreators.set(cid, 0, catsData[0])
   ]
   cats.epic(action$, undefined, { feathers })
     .toArray()
@@ -63,16 +62,16 @@ test('get', function (t) {
 })
 
 test('create', function (t) {
-  const action$ = Action$.of(cats.actions.create(newCat))
+  const cid = createCid()
+  const action$ = Action$.of(cats.actions.create(cid, newCat))
   const feathers = {
     create: () => Rx.Observable.of(catsData[0])
   }
-  const cid = currentCid
   const expected = [
-    actionCreators.requestStart(cid, { service, method: 'create', args: { data: newCat, params: {} } }),
-    actionCreators.set(cid, newCat),
-    actionCreators.set(cid, undefined),
-    actionCreators.set(0, catsData[0])
+    actionCreators.start(cid, { service, method: 'create', args: { data: newCat, params: {} } }),
+    actionCreators.set(cid, cid, newCat),
+    actionCreators.set(cid, cid, undefined),
+    actionCreators.set(cid, 0, catsData[0])
   ]
   cats.epic(action$, undefined, { feathers })
     .toArray()
@@ -112,7 +111,7 @@ test('create is handled by epic and emits request start action', function (t) {
   }
 
   cats.epic(action$, {}, { feathers })
-    .filter(isType(actionTypes.requestStart))
+    .filter(isType(actionTypes.start))
     .subscribe((action) => {
       t.ok(action)
       t.end()

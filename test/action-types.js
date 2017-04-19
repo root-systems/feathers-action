@@ -14,9 +14,9 @@ test('returns the service action ids', function (t) {
 
   t.equal(actionTypes.set, 'FEATHERS_CATS_SET')
 
-  t.equal(actionTypes.requestStart, 'FEATHERS_CATS_REQUEST_START')
-  t.equal(actionTypes.requestSuccess, 'FEATHERS_CATS_REQUEST_SUCCESS')
-  t.equal(actionTypes.requestError, 'FEATHERS_CATS_REQUEST_ERROR')
+  t.equal(actionTypes.start, 'FEATHERS_CATS_START')
+  t.equal(actionTypes.complete, 'FEATHERS_CATS_COMPLETE')
+  t.equal(actionTypes.error, 'FEATHERS_CATS_ERROR')
 
   t.end()
 })

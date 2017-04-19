@@ -25,9 +25,9 @@ function createActionTypes (options) {
     getActionTypesForMethods(createActionType, methods),
     {
       set: createActionType(['set']),
-      requestStart: createActionType(['request', 'start']),
-      requestSuccess: createActionType(['request', 'success']),
-      requestError: createActionType(['request', 'error'])
+      start: createActionType(['start']),
+      complete: createActionType(['complete']),
+      error: createActionType(['error'])
     }
   )
 }

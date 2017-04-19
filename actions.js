@@ -28,36 +28,37 @@ function createActionCreators (options) {
     {
       // special
       set,
-      requestStart,
-      requestSuccess,
-      requestError
+      start,
+      complete,
+      error
     }
   )
 
-  function set (id, data) {
+  function set (cid, id, data) {
     return {
       type: actionTypes.set,
-      payload: { id, data }
+      payload: { id, data },
+      meta: { cid }
     }
   }
 
-  function requestStart (cid, call) {
+  function start (cid, call) {
     return {
-      type: actionTypes.requestStart,
+      type: actionTypes.start,
       payload: call,
       meta: { cid }
     }
   }
-  function requestSuccess (cid, result) {
+  function complete (cid, result) {
     return {
-      type: actionTypes.requestSuccess,
+      type: actionTypes.complete,
       payload: result,
       meta: { cid }
     }
   }
-  function requestError (cid, err) {
+  function error (cid, err) {
     return {
-      type: actionTypes.requestError,
+      type: actionTypes.error,
       payload: err,
       error: true,
       meta: { cid }
@@ -65,9 +66,10 @@ function createActionCreators (options) {
   }
 
   function Action (method, argsCreator) {
-    return (...args) => ({
+    return (cid, ...args) => ({
       type: actionTypes[method],
-      payload: argsCreator(...args)
+      payload: argsCreator(...args),
+      meta: { cid }
     })
   }
 }

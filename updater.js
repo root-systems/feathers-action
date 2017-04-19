@@ -26,7 +26,7 @@ function createServiceUpdater (actionTypes, service) {
     [actionTypes.set]: (action) => {
       const { id, data } = action.payload
       return value => {
-        if (value === undefined) return dissoc(id, path)
+        if (value === undefined) return dissoc(id, data)
         return assoc(id, data, value)
       }
     }
@@ -42,17 +42,17 @@ function createServiceUpdater (actionTypes, service) {
 
 function createRequestUpdater (actionTypes) {
   const requestUpdateHandlers = {
-    [actionTypes.requestStart]: action => {
+    [actionTypes.start]: action => {
       const { cid } = action.meta
       return assoc(cid, action.payload)
     },
-    [actionTypes.requestSuccess]: action => {
+    [actionTypes.complete]: action => {
       const { cid } = action.meta
       const result = action.payload
       const error = null
       return handleComplete({ cid, result, error })
     },
-    [actionTypes.requestError]: action => {
+    [actionTypes.error]: action => {
       const { cid } = action.meta
       const result = null
       const error = action.payload
@@ -69,7 +69,7 @@ function createRequestUpdater (actionTypes) {
 
   return decorate(
     withDefaultState({}),
-    updateStateAt('feathersAction'),
+    updateStateAt('feathers'),
     withDefaultState({}),
     handleActions(requestUpdateHandlers)
   )

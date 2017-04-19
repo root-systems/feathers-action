@@ -1,4 +1,3 @@
-const defaultCreateCid = require('cuid')
 const { combineEpics } = require('redux-observable')
 const is = require('typeof-is')
 const map = require('ramda/src/map')
@@ -15,13 +14,12 @@ module.exports = createEpic
 function createEpic (options) {
   const {
     service,
-    createCid = defaultCreateCid
   } = options
 
   const actionTypes = createActionTypes(options)
   const actionCreators = createActionCreators(options)
 
-  const epics = createEpics({ actionTypes, actionCreators, service, createCid })
+  const epics = createEpics({ actionTypes, actionCreators, service })
   return combineEpics(...values(epics))
 }
 
@@ -35,26 +33,24 @@ const requestArgs = {
 }
 
 const createRequestHandlers = actions => {
-  const setAll = map(value => actions.set(value.id, value))
+  const setAll = cid => map(value => actions.set(cid, value.id, value))
 
   return {
-    find: (response$) => response$
-      .map(values => Rx.Observable.of(...setAll(values)))
-      .concatAll()
-    ,
-    get: (response$) => response$
-      .map(value => actions.set(value.id, value))
-    ,
+    find: (response$, cid) => response$
+      .map(values => Rx.Observable.of(...setAll(cid)(values)))
+      .concatAll(),
+    get: (response$, cid) => response$
+      .map(value => actions.set(cid, value.id, value)),
     create: (response$, cid, args) => {
-      const optimistic = actions.set(cid, args.data)
+      const optimistic = actions.set(cid, cid, args.data)
       const optimistic$ = Rx.Observable.of(optimistic)
-      const removeOptimistic = actions.set(cid, undefined)
+      const removeOptimistic = actions.set(cid, cid, undefined)
 
       // TODO rollback
       var isOptimistic = true
       const responseAction$ = response$
         .map(value => {
-          var stream = Rx.Observable.of(actions.set(value.id, value))
+          var stream = Rx.Observable.of(actions.set(cid, value.id, value))
 
           if (isOptimistic) {
             stream = Rx.Observable.of(removeOptimistic)
@@ -73,7 +69,7 @@ const createRequestHandlers = actions => {
   }
 }
 
-const createEpics = ({ actionTypes, actionCreators, service, createCid }) => {
+const createEpics = ({ actionTypes, actionCreators, service }) => {
   const requestHandlers = createRequestHandlers(actionCreators)
   const mapRequestHandlers = mapObjIndexed((requestHandler, method) => {
     return (action$, state, deps) => {
@@ -86,14 +82,15 @@ const createEpics = ({ actionTypes, actionCreators, service, createCid }) => {
       return action$.ofType(actionTypes[method])
         .mergeMap(action => {
           const args = action.payload
-          const cid = createCid()
+          const { cid } = action.meta
 
           const response$ = requester(args)
           const requestAction$ = requestHandler(response$, cid, args)
 
-          return Rx.Observable.of(actionCreators.requestStart(cid, { service, method, args }))
+          return Rx.Observable.of(actionCreators.start(cid, { service, method, args }))
             .concat(requestAction$)
-            .catch(err => Rx.Observable.of(actionCreators.requestError(cid, err)))
+            .catch(err => Rx.Observable.of(actionCreators.error(cid, err)))
+            //.concat(Rx.Observable.of(actionCreators.complete(cid)))
         })
     }
   })
