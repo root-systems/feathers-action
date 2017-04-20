@@ -71,7 +71,20 @@ const createRequestHandlers = actions => {
         return merge(previousData, args.data)
       }
     }),
-    remove: () => {}
+    remove: (response$, { cid, args, service, store }) => {
+      const state = store.getState()
+      const previousData = state[service][args.id]
+      const setOptimistic = actions.set(cid, args.id, undefined)
+      const resetOptimistic = actions.set(cid, args.id, previousData)
+
+      const responseAction$ = response$
+        .take(1)
+        .map(value => actions.set(cid, value.id, undefined))
+        .catch(err => Rx.Observable.of(resetOptimistic, actions.error(cid, err)))
+
+      return Rx.Observable.of(setOptimistic)
+        .concat(responseAction$)
+    }
   }
 
   // TODO: only rollback when _all_ updates for that id have errored

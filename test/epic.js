@@ -227,6 +227,53 @@ test('patch with rollback', function (t) {
     })
 })
 
+test('remove', function (t) {
+  const cid = createCid()
+  const action$ = Action$.of(cats.actions.remove(cid, 0))
+  const feathers = {
+    remove: () => Rx.Observable.of(catsData[0])
+  }
+  const store = {
+    getState: () => ({ cats: catsData })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'remove', args: { id: 0, params: {} } }),
+    actionCreators.set(cid, 0, undefined),
+    actionCreators.set(cid, 0, undefined),
+    actionCreators.complete(cid)
+  ]
+  cats.epic(action$, store, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
+test('remove with rollback', function (t) {
+  const cid = createCid()
+  const err = new Error('oh no')
+  const action$ = Action$.of(cats.actions.remove(cid, 0))
+  const feathers = {
+    remove: () => Rx.Observable.throw(err)
+  }
+  const store = {
+    getState: () => ({ cats: catsData })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'remove', args: { id: 0, params: {} } }),
+    actionCreators.set(cid, 0, undefined),
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.error(cid, err)
+  ]
+  cats.epic(action$, store, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
 /*
 
 test('create is handled by epic and calls create on the feathers', function (t) {
