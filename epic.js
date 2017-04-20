@@ -18,7 +18,7 @@ module.exports = createEpic
 
 function createEpic (options) {
   const {
-    service,
+    service
   } = options
 
   const actionTypes = createActionTypes(options)
@@ -42,11 +42,9 @@ const createRequestHandlers = actions => {
 
   return {
     find: (response$, { cid }) => response$
-      .concatMap(values => Rx.Observable.of(...setAll(cid)(values)))
-    ,
+      .concatMap(values => Rx.Observable.of(...setAll(cid)(values))),
     get: (response$, { cid }) => response$
-      .map(value => actions.set(cid, value.id, value))
-    ,
+      .map(value => actions.set(cid, value.id, value)),
     create: (response$, { cid, args }) => {
       const setOptimistic = actions.set(cid, cid, args.data)
       const unsetOptimistic = actions.set(cid, cid, undefined)
