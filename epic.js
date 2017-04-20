@@ -1,7 +1,7 @@
 const { combineEpics } = require('redux-observable')
 const is = require('typeof-is')
+const either = require('ramda/src/either')
 const map = require('ramda/src/map')
-const contains = require('ramda/src/contains')
 const __ = require('ramda/src/__')
 const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const values = require('ramda/src/values')
@@ -41,32 +41,24 @@ const createRequestHandlers = actions => {
 
   return {
     find: (response$, cid) => response$
-      .map(values => Rx.Observable.of(...setAll(cid)(values)))
-      .concatAll(),
+      .concatMap(values => Rx.Observable.of(...setAll(cid)(values)))
+    ,
     get: (response$, cid) => response$
-      .map(value => actions.set(cid, value.id, value)),
+      .map(value => actions.set(cid, value.id, value))
+    ,
     create: (response$, cid, args) => {
-      const optimistic = actions.set(cid, cid, args.data)
-      const optimistic$ = Rx.Observable.of(optimistic)
-      const removeOptimistic = actions.set(cid, cid, undefined)
+      const setOptimistic = actions.set(cid, cid, args.data)
+      const unsetOptimistic = actions.set(cid, cid, undefined)
 
-      // TODO rollback
-      var isOptimistic = true
       const responseAction$ = response$
-        .map(value => {
-          var stream = Rx.Observable.of(actions.set(cid, value.id, value))
+        .take(1)
+        .map(value => actions.set(cid, value.id, value))
+        .catch(err => Rx.Observable.of(actions.error(cid, err)))
 
-          if (isOptimistic) {
-            stream = Rx.Observable.of(removeOptimistic)
-              .concat(stream)
-            isOptimistic = false
-          }
-          return stream
-        })
-        .concatAll()
-
-      return optimistic$.concat(responseAction$)
+      return Rx.Observable.of(setOptimistic)
+        .concat(responseAction$.startWith(unsetOptimistic))
     },
+    // NOTE: only rollback when _all_ updates for that id have errored
     update: () => {},
     patch: () => {},
     remove: () => {}
@@ -74,6 +66,9 @@ const createRequestHandlers = actions => {
 }
 
 const createEpics = ({ actionTypes, actionCreators, service }) => {
+  const isCompleteAction = isType(actionTypes.complete)
+  const isErrorAction = isType(actionTypes.error)
+  const isEndAction = either(isCompleteAction, isErrorAction)
   const requestHandlers = createRequestHandlers(actionCreators)
   const mapRequestHandlers = mapObjIndexed((requestHandler, method) => {
     return (action$, state, deps) => {
@@ -88,21 +83,20 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
           const args = action.payload
           const { cid } = action.meta
 
-          var response$ = requester(args)
-          if (isSingleRequest(method)) {
-            response$ = response$.take(1)
-          }
+          const response$ = requester(args)
           const requestAction$ = requestHandler(response$, cid, args)
 
-          const cancelAction$ = action$
-            .filter(isCid(cid))
-            .filter(isType(actionTypes.complete))
+          const cidAction$ = action$.filter(isCid(cid))
+          const completeAction$ = cidAction$.filter(isCompleteAction)
+          const errorAction$ = cidAction$.filter(isErrorAction)
+          const cancelAction$ = completeAction$.merge(errorAction$)
 
           return Rx.Observable.of(actionCreators.start(cid, { service, method, args }))
             .concat(requestAction$)
-            .catch(err => Rx.Observable.of(actionCreators.error(cid, err)))
             .concat(Rx.Observable.of(actionCreators.complete(cid)))
+            .catch(err => Rx.Observable.of(actionCreators.error(cid, err)))
             .takeUntil(cancelAction$)
+            .filter(endOnce(isEndAction))
         })
     }
   })
@@ -122,12 +116,17 @@ function assertFeathersDep (deps = {}) {
   }
 }
 
-const isSingleRequest = contains(__, [
-  'create',
-  'update',
-  'patch',
-  'remove'
-])
-
 const isCid = pathEq(['meta', 'cid'])
 const isType = propEq('type')
+
+const endOnce = (isEndAction) => {
+  var isDone = false
+  return (value) => {
+    if (isEndAction(value)) {
+      if (isDone) return false
+      isDone = true
+      return true
+    }
+    return true
+  }
+}

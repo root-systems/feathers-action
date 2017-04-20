@@ -111,6 +111,27 @@ test('create', function (t) {
     })
 })
 
+test('create with rollback', function (t) {
+  const cid = createCid()
+  const err = new Error('oh no')
+  const action$ = Action$.of(cats.actions.create(cid, newCat))
+  const feathers = {
+    create: () => Rx.Observable.throw(err)
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'create', args: { data: newCat, params: {} } }),
+    actionCreators.set(cid, cid, newCat),
+    actionCreators.set(cid, cid, undefined),
+    actionCreators.error(cid, err)
+  ]
+  cats.epic(action$, undefined, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
 /*
 
 test('create is handled by epic and calls create on the feathers', function (t) {
