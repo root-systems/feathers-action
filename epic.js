@@ -59,13 +59,32 @@ const createRequestHandlers = actions => {
       return Rx.Observable.of(setOptimistic)
         .concat(responseAction$.startWith(unsetOptimistic))
     },
-    // TODO: only rollback when _all_ updates for that id have errored
-    // TODO: find a way to pass in actions for all updates of the same id
-    update: (response$, { cid, args, service, store }) => {
-      const optimisticData = merge({ id: args.id }, args.data)
-      const setOptimistic = actions.set(cid, args.id, optimisticData)
+    update: createUpdateOrPatchHandler({
+      method: 'update',
+      getOptimisticData: ({ args }) => {
+        return merge({ id: args.id }, args.data)
+      }
+    }),
+    patch: createUpdateOrPatchHandler({
+      method: 'patch',
+      getOptimisticData: ({ args, previousData }) => {
+        return merge(previousData, args.data)
+      }
+    }),
+    remove: () => {}
+  }
+
+  // TODO: only rollback when _all_ updates for that id have errored
+  // TODO: find a way to pass in actions for all updates of the same id
+  function createUpdateOrPatchHandler (options) {
+    const { method, getOptimisticData } = options
+
+    return (response$, { cid, args, service, store }) => {
       const state = store.getState()
       const previousData = state[service][args.id]
+      const optimisticData = getOptimisticData({ args, previousData })
+
+      const setOptimistic = actions.set(cid, args.id, optimisticData)
       const resetOptimistic = actions.set(cid, args.id, previousData)
 
       const responseAction$ = response$
@@ -75,9 +94,7 @@ const createRequestHandlers = actions => {
 
       return Rx.Observable.of(setOptimistic)
         .concat(responseAction$)
-    },
-    patch: () => {},
-    remove: () => {}
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 const test = require('tape')
 const Rx = require('rxjs/Rx')
 const Action$ = require('redux-observable/lib/cjs/ActionsObservable').ActionsObservable
-const { values, merge, propEq } = require('ramda')
+const { values, merge, mergeAll, propEq } = require('ramda')
 
 const catsData = {
   0: { id: 0, name: 'honey', description: 'sweet and delicious.' },
@@ -169,6 +169,53 @@ test('update with rollback', function (t) {
   const expected = [
     actionCreators.start(cid, { service, method: 'update', args: { id: 0, data: nextCat, params: {} } }),
     actionCreators.set(cid, 0, merge({ id: 0 }, nextCat)),
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.error(cid, err)
+  ]
+  cats.epic(action$, store, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
+test('patch', function (t) {
+  const cid = createCid()
+  const action$ = Action$.of(cats.actions.patch(cid, 0, nextCat))
+  const feathers = {
+    patch: () => Rx.Observable.of(mergeAll([catsData[0], { feathers: true }, nextCat]))
+  }
+  const store = {
+    getState: () => ({ cats: catsData })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'patch', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.set(cid, 0, merge(catsData[0], nextCat)),
+    actionCreators.set(cid, 0, mergeAll([catsData[0], { feathers: true }, nextCat])),
+    actionCreators.complete(cid)
+  ]
+  cats.epic(action$, store, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
+test('patch with rollback', function (t) {
+  const cid = createCid()
+  const err = new Error('oh no')
+  const action$ = Action$.of(cats.actions.patch(cid, 0, nextCat))
+  const feathers = {
+    patch: () => Rx.Observable.throw(err)
+  }
+  const store = {
+    getState: () => ({ cats: catsData })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'patch', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.set(cid, 0, merge(catsData[0], nextCat)),
     actionCreators.set(cid, 0, catsData[0]),
     actionCreators.error(cid, err)
   ]
