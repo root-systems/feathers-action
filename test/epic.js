@@ -44,6 +44,33 @@ test('find', function (t) {
     })
 })
 
+test('find with cancel', function (t) {
+  const cid = createCid()
+  const action$ = new Action$(Rx.Observable.create(observer => {
+    observer.next(cats.actions.find(cid))
+    process.nextTick(() => {
+      observer.next(cats.actions.complete(cid))
+    })
+  }))
+  const feathers = {
+    find: () => Rx.Observable.create(observer => {
+      observer.next(values(catsData))
+    })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'find', args: { params: {} } }),
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.set(cid, 1, catsData[1]),
+    actionCreators.set(cid, 2, catsData[2])
+  ]
+  var i = 0
+  cats.epic(action$, undefined, { feathers })
+    .subscribe((action) => {
+      t.deepEqual(action, expected[i++])
+      if (i === 4) t.end()
+    })
+})
+
 test('get', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.get(cid, 0))
