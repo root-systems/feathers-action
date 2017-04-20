@@ -1,7 +1,7 @@
 const test = require('tape')
 const Rx = require('rxjs/Rx')
 const Action$ = require('redux-observable/lib/cjs/ActionsObservable').ActionsObservable
-const { values, propEq } = require('ramda')
+const { values, merge, propEq } = require('ramda')
 
 const catsData = {
   0: { id: 0, name: 'honey', description: 'sweet and delicious.' },
@@ -9,6 +9,7 @@ const catsData = {
   2: { id: 2, name: 'mug' }
 }
 const newCat = { name: 'honey', description: 'sweet and delicious' }
+const nextCat = { name: 'sugar' }
 
 const createActionTypes = require('../action-types')
 const createActionCreators = require('../actions')
@@ -125,6 +126,53 @@ test('create with rollback', function (t) {
     actionCreators.error(cid, err)
   ]
   cats.epic(action$, undefined, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
+test('update', function (t) {
+  const cid = createCid()
+  const action$ = Action$.of(cats.actions.update(cid, 0, nextCat))
+  const feathers = {
+    update: () => Rx.Observable.of(merge({ id: 0, feathers: true }, nextCat))
+  }
+  const store = {
+    getState: () => ({ cats: catsData })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'update', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.set(cid, 0, merge({ id: 0 }, nextCat)),
+    actionCreators.set(cid, 0, merge({ id: 0, feathers: true }, nextCat)),
+    actionCreators.complete(cid)
+  ]
+  cats.epic(action$, store, { feathers })
+    .toArray()
+    .subscribe((actions) => {
+      t.deepEqual(actions, expected)
+      t.end()
+    })
+})
+
+test('update with rollback', function (t) {
+  const cid = createCid()
+  const err = new Error('oh no')
+  const action$ = Action$.of(cats.actions.update(cid, 0, nextCat))
+  const feathers = {
+    update: () => Rx.Observable.throw(err)
+  }
+  const store = {
+    getState: () => ({ cats: catsData })
+  }
+  const expected = [
+    actionCreators.start(cid, { service, method: 'update', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.set(cid, 0, merge({ id: 0 }, nextCat)),
+    actionCreators.set(cid, 0, catsData[0]),
+    actionCreators.error(cid, err)
+  ]
+  cats.epic(action$, store, { feathers })
     .toArray()
     .subscribe((actions) => {
       t.deepEqual(actions, expected)

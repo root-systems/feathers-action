@@ -1,6 +1,7 @@
 const { combineEpics } = require('redux-observable')
 const is = require('typeof-is')
 const either = require('ramda/src/either')
+const merge = require('ramda/src/merge')
 const map = require('ramda/src/map')
 const __ = require('ramda/src/__')
 const mapObjIndexed = require('ramda/src/mapObjIndexed')
@@ -40,13 +41,13 @@ const createRequestHandlers = actions => {
   const setAll = cid => map(value => actions.set(cid, value.id, value))
 
   return {
-    find: (response$, cid) => response$
+    find: (response$, { cid }) => response$
       .concatMap(values => Rx.Observable.of(...setAll(cid)(values)))
     ,
-    get: (response$, cid) => response$
+    get: (response$, { cid }) => response$
       .map(value => actions.set(cid, value.id, value))
     ,
-    create: (response$, cid, args) => {
+    create: (response$, { cid, args }) => {
       const setOptimistic = actions.set(cid, cid, args.data)
       const unsetOptimistic = actions.set(cid, cid, undefined)
 
@@ -58,8 +59,23 @@ const createRequestHandlers = actions => {
       return Rx.Observable.of(setOptimistic)
         .concat(responseAction$.startWith(unsetOptimistic))
     },
-    // NOTE: only rollback when _all_ updates for that id have errored
-    update: () => {},
+    // TODO: only rollback when _all_ updates for that id have errored
+    // TODO: find a way to pass in actions for all updates of the same id
+    update: (response$, { cid, args, service, store }) => {
+      const optimisticData = merge({ id: args.id }, args.data)
+      const setOptimistic = actions.set(cid, args.id, optimisticData)
+      const state = store.getState()
+      const previousData = state[service][args.id]
+      const resetOptimistic = actions.set(cid, args.id, previousData)
+
+      const responseAction$ = response$
+        .take(1)
+        .map(value => actions.set(cid, value.id, value))
+        .catch(err => Rx.Observable.of(resetOptimistic, actions.error(cid, err)))
+
+      return Rx.Observable.of(setOptimistic)
+        .concat(responseAction$)
+    },
     patch: () => {},
     remove: () => {}
   }
@@ -71,7 +87,7 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
   const isEndAction = either(isCompleteAction, isErrorAction)
   const requestHandlers = createRequestHandlers(actionCreators)
   const mapRequestHandlers = mapObjIndexed((requestHandler, method) => {
-    return (action$, state, deps) => {
+    return (action$, store, deps) => {
       assertFeathersDep(deps)
 
       const { feathers } = deps
@@ -84,7 +100,7 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
           const { cid } = action.meta
 
           const response$ = requester(args)
-          const requestAction$ = requestHandler(response$, cid, args)
+          const requestAction$ = requestHandler(response$, { cid, args, service, store })
 
           const cidAction$ = action$.filter(isCid(cid))
           const completeAction$ = cidAction$.filter(isCompleteAction)
