@@ -12,7 +12,8 @@ var createModule = require('../')
 
 const serviceNames = ['cats', 'dogs']
 
-test('app works', function (t) {
+
+test('create, update, patch and remove update the store', function(t) {
   const app = createApp(serviceNames)
   const {cats, dogs} = createModule(serviceNames)
   const catActions = cats.actions
@@ -26,41 +27,38 @@ test('app works', function (t) {
 
   const store = createStore(reducer, applyMiddleware(epicMiddleware))
 
-  const cidCreate = Cid()
-  const cidUpdate = Cid()
-  const cidPatch = Cid()
-  const cidRemove = Cid()
-
-  Store$(store)
-    .filter((store) => store.cats && store.cats.cats[0])
+  
+  Store$(store) 
+    .filter((store) => store.cats.cats[0])
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].name, 'fluffy')
-      store.dispatch(catActions.update(cidUpdate, 0, {name: 'tick'}))
+      t.equal(cats.cats[0].name, 'fluffy') 
+      store.dispatch(catActions.update(Cid(), 0,  {name: 'tick'}))
       return Store$(store)
     })
-    .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].name === 'tick')
+    .filter((store) => store.cats.cats[0].name === 'tick')
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].name, 'tick')
-      store.dispatch(catActions.patch(cidPatch, 0, {nickName: 'fatboy'}))
+      t.equal(cats.cats[0].name, 'tick') 
+      store.dispatch(catActions.patch(Cid(), 0,  {nickName: 'fatboy'}))
       return Store$(store)
     })
-    .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].nickName === 'fatboy')
+    .filter((store) => store.cats.cats[0] && store.cats.cats[0].nickName === 'fatboy')
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].nickName, 'fatboy')
-      store.dispatch(catActions.remove(cidRemove, 0))
+      t.equal(cats.cats[0].nickName, 'fatboy') 
+      store.dispatch(catActions.remove(Cid(), 0))
       return Store$(store)
     })
-    .filter((store) => store.cats && !store.cats.cats[0])
+    .filter((store) => !store.cats.cats[0] )
     .take(1)
     .subscribe(() => {
       t.pass()
       t.end()
     })
 
-  store.dispatch(cats.actions.create(cidCreate, {name: 'fluffy'}))
+  store.dispatch(cats.actions.create(Cid(), {name: 'fluffy'}))
+
 })
 
 function Store$ (store) {
