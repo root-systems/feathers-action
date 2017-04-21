@@ -29,6 +29,7 @@ test('app works', function(t) {
 
   const cidCreate = Cid()
   const cidUpdate = Cid()
+  const cidPatch = Cid()
   const cidRemove = Cid()
   
   Store$(store) 
@@ -43,6 +44,13 @@ test('app works', function(t) {
     .take(1)
     .mergeMap(({cats}) => {
       t.equal(cats.cats[0].name, 'tick') 
+      store.dispatch(catActions.patch(cidPatch, 0,  {nickName: 'fatboy'}))
+      return Store$(store)
+    })
+    .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].nickName === 'fatboy')
+    .take(1)
+    .mergeMap(({cats}) => {
+      t.equal(cats.cats[0].nickName, 'fatboy') 
       store.dispatch(catActions.remove(cidRemove, 0))
       return Store$(store)
     })
