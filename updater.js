@@ -3,6 +3,7 @@
 const assoc = require('ramda/src/assoc')
 const assocPath = require('ramda/src/assocPath')
 const dissoc = require('ramda/src/dissoc')
+const keys = require('ramda/src/keys')
 const pipe = require('ramda/src/pipe')
 const reduce = require('ramda/src/reduce')
 const __ = require('ramda/src/__')
