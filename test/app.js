@@ -16,6 +16,7 @@ const serviceNames = ['cats', 'dogs']
 test('app works', function(t) {
   const app = createApp(serviceNames)
   const {cats, dogs} = createModule(serviceNames)
+  const catActions = cats.actions
 
   const updaters = reduxFp.combine({cats: cats.updater, dogs: dogs.updater}) 
   const epics = combineEpics(cats.epic, dogs.epic)
@@ -27,24 +28,34 @@ test('app works', function(t) {
   const store = createStore(reducer, applyMiddleware(epicMiddleware))
 
   const cidCreate = Cid()
+  const cidUpdate = Cid()
   
-  store$ = rxjs.Observable.create(observer => {
-    store.subscribe(() => {
-      observer.next(store.getState()) 
-    }) 
-  }) 
-
-  store$
+  Store$(store) 
     .filter((store) => store.cats && store.cats.cats[0])
     .take(1)
-    .subscribe(({cats}) => {
+    .mergeMap(({cats}) => {
       t.equal(cats.cats[0].name, 'fluffy') 
+      store.dispatch(catActions.update(cidUpdate, 0,  {name: 'tick'}))
+      return Store$(store)
+    })
+    .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].name === 'tick')
+    .take(1)
+    .subscribe(({cats}) => {
+      t.equal(cats.cats[0].name, 'tick') 
       t.end()
     })
 
   store.dispatch(cats.actions.create(cidCreate, {name: 'fluffy'}))
 
 })
+
+function Store$(store) {
+  return rxjs.Observable.create(observer => {
+    store.subscribe(() => {
+      observer.next(store.getState()) 
+    }) 
+  }) 
+}
 
 function createApp(resources) {
   const app = feathers()
