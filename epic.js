@@ -48,7 +48,7 @@ const createRequestHandlers = actions => {
     create: (response$, { cid, args }) => {
       const setOptimistic = actions.set(cid, cid, args.data)
       const unsetOptimistic = actions.set(cid, cid, undefined)
-
+  
       const responseAction$ = response$
         .take(1)
         .map(value => actions.set(cid, value.id, value))
@@ -120,7 +120,7 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
 
       const { feathers } = deps
 
-      const requester = createRequester({ method, feathers })
+      const requester = createRequester({ method, feathers, service })
 
       return action$.ofType(actionTypes[method])
         .mergeMap(action => {
@@ -147,10 +147,11 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
   return mapRequestHandlers(requestHandlers)
 }
 
-const createRequester = ({ feathers, method }) => {
+const createRequester = ({ feathers, method, service }) => {
+  const feathersService = feathers.service(service)
   return payload => {
     const args = requestArgs[method](payload)
-    return feathers[method](...args)
+    return feathersService[method](...args)
   }
 }
 
