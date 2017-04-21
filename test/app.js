@@ -29,6 +29,7 @@ test('app works', function(t) {
 
   const cidCreate = Cid()
   const cidUpdate = Cid()
+  const cidRemove = Cid()
   
   Store$(store) 
     .filter((store) => store.cats && store.cats.cats[0])
@@ -40,8 +41,15 @@ test('app works', function(t) {
     })
     .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].name === 'tick')
     .take(1)
-    .subscribe(({cats}) => {
+    .mergeMap(({cats}) => {
       t.equal(cats.cats[0].name, 'tick') 
+      store.dispatch(catActions.remove(cidRemove, 0))
+      return Store$(store)
+    })
+    .filter((store) => store.cats && !store.cats.cats[0] )
+    .take(1)
+    .subscribe(() => {
+      t.pass()
       t.end()
     })
 
