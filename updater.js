@@ -4,6 +4,8 @@ const assoc = require('ramda/src/assoc')
 const assocPath = require('ramda/src/assocPath')
 const dissoc = require('ramda/src/dissoc')
 const pipe = require('ramda/src/pipe')
+const reduce = require('ramda/src/reduce')
+const __ = require('ramda/src/__')
 const { withDefaultState, concat, updateStateAt, handleActions, decorate } = require('redux-fp')
 
 const createActionTypes = require('./action-types')
@@ -25,10 +27,21 @@ function createServiceUpdater (actionTypes, service) {
   const serviceUpdateHandlers = {
     [actionTypes.set]: (action) => {
       const { id, data } = action.payload
-      return state => {
-        if (data === undefined) return dissoc(id, state)
-        return assoc(id, data, state)
-      }
+      return assoc(id, data)
+    },
+    [actionTypes.setAll]: (action) => {
+      return reduce((sofar, next) => {
+        return assoc(next.id, next, sofar)
+      }, __, action.payload)
+    },
+    [actionTypes.unset]: (action) => {
+      const { id } = action.payload
+      return dissoc(id)
+    },
+    [actionTypes.unsetAll]: (action) => {
+      return reduce((sofar, next) => {
+        return dissoc(next, sofar)
+      }, __, action.payload)
     }
   }
 

@@ -12,13 +12,12 @@ var createModule = require('../')
 
 const serviceNames = ['cats', 'dogs']
 
-
-test('app works', function(t) {
+test('app works', function (t) {
   const app = createApp(serviceNames)
   const {cats, dogs} = createModule(serviceNames)
   const catActions = cats.actions
 
-  const updaters = reduxFp.combine({cats: cats.updater, dogs: dogs.updater}) 
+  const updaters = reduxFp.combine({cats: cats.updater, dogs: dogs.updater})
   const epics = combineEpics(cats.epic, dogs.epic)
 
   const reducer = (state, action) => updaters(action)(state)
@@ -31,30 +30,30 @@ test('app works', function(t) {
   const cidUpdate = Cid()
   const cidPatch = Cid()
   const cidRemove = Cid()
-  
-  Store$(store) 
+
+  Store$(store)
     .filter((store) => store.cats && store.cats.cats[0])
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].name, 'fluffy') 
-      store.dispatch(catActions.update(cidUpdate, 0,  {name: 'tick'}))
+      t.equal(cats.cats[0].name, 'fluffy')
+      store.dispatch(catActions.update(cidUpdate, 0, {name: 'tick'}))
       return Store$(store)
     })
     .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].name === 'tick')
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].name, 'tick') 
-      store.dispatch(catActions.patch(cidPatch, 0,  {nickName: 'fatboy'}))
+      t.equal(cats.cats[0].name, 'tick')
+      store.dispatch(catActions.patch(cidPatch, 0, {nickName: 'fatboy'}))
       return Store$(store)
     })
     .filter((store) => store.cats && store.cats.cats[0] && store.cats.cats[0].nickName === 'fatboy')
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].nickName, 'fatboy') 
+      t.equal(cats.cats[0].nickName, 'fatboy')
       store.dispatch(catActions.remove(cidRemove, 0))
       return Store$(store)
     })
-    .filter((store) => store.cats && !store.cats.cats[0] )
+    .filter((store) => store.cats && !store.cats.cats[0])
     .take(1)
     .subscribe(() => {
       t.pass()
@@ -62,22 +61,21 @@ test('app works', function(t) {
     })
 
   store.dispatch(cats.actions.create(cidCreate, {name: 'fluffy'}))
-
 })
 
-function Store$(store) {
+function Store$ (store) {
   return rxjs.Observable.create(observer => {
     store.subscribe(() => {
-      observer.next(store.getState()) 
-    }) 
-  }) 
+      observer.next(store.getState())
+    })
+  })
 }
 
-function createApp(resources) {
+function createApp (resources) {
   const app = feathers()
   app.configure(feathersReactive(rxjs))
   resources.forEach(resource => {
     app.use('/' + resource, memory())
-  }) 
+  })
   return app
 }
