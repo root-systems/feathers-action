@@ -7,17 +7,19 @@ this module helps you use [`feathers`](http://feathersjs.com), [`redux`](http://
 ## Usage
 
 ```js
-const feathersAction = require('feathers-action')
+const createModule = require('feathers-action')
+const createCid = require('cuid')
 
-console.log('hello warld')
+const module = createModule('cats')
+// module.actions
+// module.epic
+// module.updater
 ```
 
-outputs
+## Dependencies
 
-```
-hello warld
-```
-
+- [`feathers-reactive`](https://redux-observable.js.org/): must add plugin to feathers app / client
+- [`redux-observable`](https://redux-observable.js.org/): must add middleware to redux store
 
 ## API
 
@@ -27,9 +29,8 @@ hello warld
 `options`:
 
 - `name`
-- `idField`
-
-maybe more from [here](https://github.com/feathersjs/feathers-reactive#options)
+- `methods`
+- TODO `idField`
 
 ### { actions, updater, epic } = module
 
@@ -40,156 +41,63 @@ maybe more from [here](https://github.com/feathersjs/feathers-reactive#options)
 ### modules = feathersAction([name, ...])
 ### modules = feathersAction([options, ...])
 
-where `modules` is an object where key is `name`.
+where `modules` is an object where key is `name` and value is `module` as above.
 
-### middleware = feathersAction.middleware(client)
+### methodAction = module.actions[method](cid, ...args)
 
-all the middleware does is inject the `client` into any `FEATHERS_ACTION` actions, to be used by the relevant epics.
+each action creator receives a `cid` (client-generated id) as the first argument.
 
-### Action Creators
+all subsequent arguments for feathers methods are the same as the corresponding methods on the [feathers service](https://docs.feathersjs.com/api/services.html).
+
+#### completeAction = module.actions.complete(cid)
+
+cancels a long-running subscription as in `find` or `get`.
+
+#### errorAction = module.actions.error(cid, err)
+
+#### setAction = module.actions.set(cid, key, value)
+
+sets the given key as value in the corresponding redux state.
+
+to unset (remove key), value is `undefined`.
+
+### nextState = module.updater(action)(state)
+
+see ["updater" in `redux-fp`](https://github.com/rvikmanis/redux-fp): `action => state => nextState`
+
+### nextAction$ = module.epic(action$, store, { feathers })
+
+see ["epic" in `redux-observable`](https://redux-observable.js.org/docs/basics/Epics.html): `(action, action$, store) => nextAction$`
+
+must pass in `{ feathers }` as `deps` to [`createEpicMiddleware`](https://redux-observable.js.org/docs/basics/SettingUpTheMiddleware.html)
 
 ```js
-const cats = feathersAction('cats')
+// client
+const Feathers = require('feathers/client')
+const feathersSockets = require('feathers-socketio/client')
+const feathersRx = require('feathers-reactive')
+const Rx = require('rxjs')
 
-const action = cats.actions.create({ name: 'fluffy' }) // same as feathers client!
-// returns action to be consumed by epic
-assert.deepEqual(action, {
-  type: 'FEATHERS_ACTION',
-  payload: {
-    serviceName: 'cats',
-    method: 'create',
-    args: {
-      data: {
-        name: 'fluffy'
-      },
-      query: {}
-    }
-  }
+const socket = io()
+const feathers = Feathers()
+  .configure(feathersSockets(socket))
+  .configure(feathersRx(Rx))
+
+// store
+const { createStore, applyMiddleware } = require('redux')
+const { createEpicMiddleware } = require('redux-observable')
+
+const rootEpic = require('./epic')
+const rootUpdater = require('./updater')
+
+const epicMiddleware = createEpicMiddleware(rootEpic, {
+  dependencies: { feathers }
 })
 
-// TODO how can dispatch return the observable or a cid?
-// we need to be able to cancel the query.
-cats.actions.cancel(cid)
-
-// then to communicate with the reducer, the epic dispatches
-// used in find and get queries
-cats.actions.set(id, data)
-
-// otherwise epic sends create, update, patch, remove actions
-
-// and to keep track of started, errored, or completed queries
-const request = {
-  cid: 'abcd',
-  serviceName: 'cats',
-  methods: 'create',
-  args: {
-    // ...
-  }
-}
-// the epic dispatches these actions
-cats.actions.start(request)
-cats.actions.complete(request)
-cats.actions.error(request)
-```
-
-## Data Models
-
-### State
-
-```
-{
-  cats: {},
-  dogs: {},
-  feathersAction: {
-    requests: {}
-  }
-}
-```
-
-```js
-// NOT THIS
-{
-  records,
-  requests: {
-    [cid]: {
-      status: 'pending' | 'success' | 'error',
-      serviceName: 'dogs',
-      methods: 'create',
-      previous: {}, // if update, store previous record at id, in case of rollback
-      args: {},
-      result: {},
-      error: {}
-    }
-  }
-}
-```
-
-Pending is an object of "start action payloads"
-
-### Call
-
-```js
-```
-
-### Start
-
-```
-{
-  type: 'FEATHERS_DOGS_CREATE_START',
-  payload: {
-    service: dogs,
-    serviceName: 'dogs', // ?
-    method: 'create', // ?
-    args: {
-      data: {},
-      query: {}
-    }
-  },
-  meta: {
-    cid: 'abcd'
-  }
-}
-```
-
-### Success
-
-```
-{
-  type: 'FEATHERS_DOGS_CREATE_SUCCESS',
-  payload: { // exactly what is returned by feathers
-    id: 1,
-    name: 'doggie'
-  },
-  meta: {
-    cid: 'abcd'
-  }
-}
-```
-
-### Error
-
-```
-{
-  type: 'FEATHERS_DOGS_CREATE_ERROR',
-  payload: new Error('...'), // whatever error is returned
-  error: true,
-  meta: {
-    cid: 'abcd'
-  }
-}
-```
-
-### Getters
-
-```
-{
-  records,
-  pending,
-  success,
-  errors,
-  isPending,
-  isError
-}
+const store = createStore(
+  (state, action) => rootUpdater(action)(state),
+  applyMiddleware(epicMiddleware)
+)
 ```
 
 ## Install
@@ -208,7 +116,6 @@ feathers-action was inspired by..
 
 - redux
 - feathers
-- tcomb
 
 ## License
 
