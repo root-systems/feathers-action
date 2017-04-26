@@ -8,6 +8,9 @@ const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const values = require('ramda/src/values')
 const pathEq = require('ramda/src/pathEq')
 const propEq = require('ramda/src/propEq')
+const find = require('ramda/src/find')
+const not = require('ramda/src/not')
+const filter = require('ramda/src/filter')
 // TODO split into individual modules
 const Rx = require('rxjs/Rx')
 
@@ -39,12 +42,32 @@ const requestArgs = {
 
 const createRequestHandlers = actions => {
   const setAll = cid => map(value => actions.set(cid, value.id, value))
+  const unsetAll = cid => map(value => actions.set(cid, value.id, undefined))
+  const setDiff = cid => (prev, next) => {
+    const removed = getRemoved(prev, next)
+    return [
+      ...unsetAll(cid)(removed),
+      ...setAll(cid)(next)
+    ]
+  }
 
   return {
-    find: (response$, { cid }) => response$
-      .concatMap(values => Rx.Observable.of(...setAll(cid)(values))),
-    get: (response$, { cid }) => response$
-      .map(value => actions.set(cid, value.id, value)),
+    find: (response$, { cid }) => Rx.Observable
+      .concat(
+        // set all initial results
+        response$.first().mergeMap(values => Rx.Observable.of(...setAll(cid)(values))),
+        // update the next results as a pairwise diff
+        response$.pairwise().mergeMap(([prev, next]) => {
+          return Rx.Observable.of(...setDiff(cid)(prev, next))
+        })
+      ),
+    get: (response$, { cid, args }) => response$
+      .map(value => {
+        // `feathers-reactive` return null on 'removed' events
+        return (value === null)
+          ? actions.set(cid, args.id, undefined)
+          : actions.set(cid, args.id, value)
+      }),
     create: (response$, { cid, args }) => {
       const setOptimistic = actions.set(cid, cid, args.data)
       const unsetOptimistic = actions.set(cid, cid, undefined)
@@ -174,4 +197,10 @@ const endOnce = (isEndAction) => {
     }
     return true
   }
+}
+
+const getRemoved = (prev, next) => {
+  return filter(value => {
+    return not(find(propEq('id', value.id), next))
+  }, prev)
 }
