@@ -25,9 +25,9 @@ function createServiceUpdater (actionTypes, service) {
   const serviceUpdateHandlers = {
     [actionTypes.set]: (action) => {
       const { id, data } = action.payload
-      return value => {
-        if (value === undefined) return dissoc(id, data)
-        return assoc(id, data, value)
+      return state => {
+        if (data === undefined) return dissoc(id, data)
+        return assoc(id, data, state)
       }
     }
   }
