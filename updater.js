@@ -26,7 +26,7 @@ function createServiceUpdater (actionTypes, service) {
     [actionTypes.set]: (action) => {
       const { id, data } = action.payload
       return state => {
-        if (data === undefined) return dissoc(id, data)
+        if (data === undefined) return dissoc(id, state)
         return assoc(id, data, state)
       }
     }
