@@ -1,46 +1,38 @@
-const t = require('tcomb')
-const cuid = require('cuid')
-const createActionCreators = require('feathers-action-creators')
-const createActionTypes = require('feathers-action-types')
-const createActionReducer = require('feathers-action-reducer')
-const camelCase = require('camel-case')
+'use strict'
 
-module.exports = {
-  createActionCreators: __createActionCreators,
-  createActions: __createActionCreators,
-  createActionReducer: __createActionReducer,
-  createReducer: __createActionReducer,
-  createActionTypes: __createActionTypes,
-  createTypes: __createActionTypes
-}
+const { isArray } = Array
+const is = require('typeof-is')
+const pipe = require('ramda/src/pipe')
+const indexBy = require('ramda/src/indexBy')
+const prop = require('ramda/src/prop')
+const map = require('ramda/src/map')
 
-function __createActionCreators (app, Collection, config) {
-  const serviceName = camelCase(Collection.meta.name)
-  const service = app.service(serviceName)
+const createActions = require('./actions')
+const createUpdater = require('./updater')
+const createEpic = require('./epic')
 
-  // HACK if service.name is not set, fix it
-  if (service.name == null) {
-    service.name = serviceName
+module.exports = createModule
+
+function createModule (options = {}) {
+  if (is.string(options)) {
+    options = { service: options }
   }
 
-  const Model = Collection.meta.type
+  if (isArray(options)) {
+    return createModules(options)
+  }
 
-  return createActionCreators(service, Object.assign({
-    cid: cuid
-  }, config))
+  const { service } = options
+
+  return {
+    name: service,
+    actions: createActions(options),
+    updater: createUpdater(options),
+    epic: createEpic(options)
+  }
 }
 
-function __createActionReducer (Collection, config) {
-  const serviceName = camelCase(Collection.meta.name)
-  const Model = Collection.meta.type
-
-  return createActionReducer(serviceName, Object.assign({
-    update: t.update
-  }, config))
-}
-
-function __createActionTypes (Collection) {
-  const serviceName = camelCase(Collection.meta.name)
-
-  return __createActionTypes(serviceName)
-}
+const createModules = pipe(
+  map(createModule),
+  indexBy(prop('name'))
+)
