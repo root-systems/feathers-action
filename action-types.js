@@ -25,6 +25,9 @@ function createActionTypes (options) {
     getActionTypesForMethods(createActionType, methods),
     {
       set: createActionType(['set']),
+      setAll: createActionType(['setAll']),
+      unset: createActionType(['unset']),
+      unsetAll: createActionType(['unsetAll']),
       start: createActionType(['start']),
       complete: createActionType(['complete']),
       error: createActionType(['error'])

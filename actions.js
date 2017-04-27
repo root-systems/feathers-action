@@ -27,20 +27,15 @@ function createActionCreators (options) {
     getActionCreatorsForMethods(methods),
     {
       // special
-      set,
+      set: Set('set'),
+      setAll: SetAll('setAll'),
+      unset: Set('unset'),
+      unsetAll: SetAll('unsetAll'),
       start,
       complete,
       error
     }
   )
-
-  function set (cid, id, data) {
-    return {
-      type: actionTypes.set,
-      payload: { id, data },
-      meta: { cid }
-    }
-  }
 
   function start (cid, call) {
     return {
@@ -69,6 +64,22 @@ function createActionCreators (options) {
     return (cid, ...args) => ({
       type: actionTypes[method],
       payload: argsCreator(...args),
+      meta: { cid }
+    })
+  }
+
+  function Set (name) {
+    return (cid, id, data) => ({
+      type: actionTypes[name],
+      payload: { id, data },
+      meta: { cid }
+    })
+  }
+
+  function SetAll (name) {
+    return (cid, data) => ({
+      type: actionTypes[name],
+      payload: data,
       meta: { cid }
     })
   }

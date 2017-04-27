@@ -41,37 +41,32 @@ const requestArgs = {
 }
 
 const createRequestHandlers = actions => {
-  const setAll = cid => map(value => actions.set(cid, value.id, value))
-  const unsetAll = cid => map(value => actions.set(cid, value.id, undefined))
-  const setDiff = cid => (prev, next) => {
-    const removed = getRemoved(prev, next)
-    return [
-      ...unsetAll(cid)(removed),
-      ...setAll(cid)(next)
-    ]
-  }
-
   return {
     find: (response$, { cid }) => Rx.Observable
       .concat(
         // set all initial results
-        response$.first().mergeMap(values => Rx.Observable.of(...setAll(cid)(values))),
+        response$.first().map(values => actions.setAll(cid, values)),
         // update the next results as a pairwise diff
         response$.pairwise().mergeMap(([prev, next]) => {
-          return Rx.Observable.of(...setDiff(cid)(prev, next))
+          const removed = getRemoved(prev, next)
+          const diff = [
+            actions.unsetAll(cid, removed),
+            actions.setAll(cid, next)
+          ]
+          return Rx.Observable.of(...diff)
         })
       ),
     get: (response$, { cid, args }) => response$
       .map(value => {
         // `feathers-reactive` return null on 'removed' events
         return (value === null)
-          ? actions.set(cid, args.id, undefined)
+          ? actions.unset(cid, args.id)
           : actions.set(cid, args.id, value)
       }),
     create: (response$, { cid, args }) => {
       const setOptimistic = actions.set(cid, cid, args.data)
-      const unsetOptimistic = actions.set(cid, cid, undefined)
-  
+      const unsetOptimistic = actions.unset(cid, cid)
+
       const responseAction$ = response$
         .take(1)
         .map(value => actions.set(cid, value.id, value))
@@ -95,12 +90,12 @@ const createRequestHandlers = actions => {
     remove: (response$, { cid, args, service, store }) => {
       const state = store.getState()
       const previousData = state[service][args.id]
-      const setOptimistic = actions.set(cid, args.id, undefined)
+      const setOptimistic = actions.unset(cid, args.id)
       const resetOptimistic = actions.set(cid, args.id, previousData)
 
       const responseAction$ = response$
         .take(1)
-        .map(value => actions.set(cid, value.id, undefined))
+        .map(value => actions.unset(cid, value.id))
         .catch(err => Rx.Observable.of(resetOptimistic, actions.error(cid, err)))
 
       return Rx.Observable.of(setOptimistic)
