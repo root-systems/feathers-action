@@ -27,14 +27,15 @@ function createCid () {
 test('find', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.find(cid))
-  const feathers = {
+  const service = {
     find: () => Rx.Observable.of(values(catsData))
   }
+  const feathers = {
+    service: () => service
+  }
   const expected = [
-    actionCreators.start(cid, { service, method: 'find', args: { params: {} } }),
-    actionCreators.set(cid, 0, catsData[0]),
-    actionCreators.set(cid, 1, catsData[1]),
-    actionCreators.set(cid, 2, catsData[2]),
+    actionCreators.start(cid, { service: 'cats', method: 'find', args: { params: {} } }),
+    actionCreators.setAll(cid, values(catsData)),
     actionCreators.complete(cid)
   ]
   cats.epic(action$, undefined, { feathers })
@@ -53,33 +54,35 @@ test('find with cancel', function (t) {
       observer.next(cats.actions.complete(cid))
     })
   }))
+  const service = {
+    find: () => Rx.Observable.of(values(catsData))
+  }
   const feathers = {
-    find: () => Rx.Observable.create(observer => {
-      observer.next(values(catsData))
-    })
+    service: () => service
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'find', args: { params: {} } }),
-    actionCreators.set(cid, 0, catsData[0]),
-    actionCreators.set(cid, 1, catsData[1]),
-    actionCreators.set(cid, 2, catsData[2])
+    actionCreators.start(cid, { service: 'cats', method: 'find', args: { params: {} } }),
+    actionCreators.setAll(cid, values(catsData)),
   ]
   var i = 0
   cats.epic(action$, undefined, { feathers })
     .subscribe((action) => {
       t.deepEqual(action, expected[i++])
-      if (i === 4) t.end()
+      if (i === 2) t.end()
     })
 })
 
 test('get', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.get(cid, 0))
-  const feathers = {
+  const service = {
     get: (id) => Rx.Observable.of(catsData[id])
   }
+  const feathers = {
+    service: () => service
+  }
   const expected = [
-    actionCreators.start(cid, { service, method: 'get', args: { id: 0, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'get', args: { id: 0, params: {} } }),
     actionCreators.set(cid, 0, catsData[0]),
     actionCreators.complete(cid)
   ]
@@ -94,11 +97,14 @@ test('get', function (t) {
 test('create', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.create(cid, newCat))
-  const feathers = {
+  const service = {
     create: () => Rx.Observable.of(catsData[0])
   }
+  const feathers = {
+    service: () => service
+  }
   const expected = [
-    actionCreators.start(cid, { service, method: 'create', args: { data: newCat, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'create', args: { data: newCat, params: {} } }),
     actionCreators.set(cid, cid, newCat),
     actionCreators.set(cid, cid, undefined),
     actionCreators.set(cid, 0, catsData[0]),
@@ -116,11 +122,14 @@ test('create with rollback', function (t) {
   const cid = createCid()
   const err = new Error('oh no')
   const action$ = Action$.of(cats.actions.create(cid, newCat))
-  const feathers = {
+  const service = {
     create: () => Rx.Observable.throw(err)
   }
+  const feathers = {
+    service: () => service
+  }
   const expected = [
-    actionCreators.start(cid, { service, method: 'create', args: { data: newCat, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'create', args: { data: newCat, params: {} } }),
     actionCreators.set(cid, cid, newCat),
     actionCreators.set(cid, cid, undefined),
     actionCreators.error(cid, err)
@@ -136,14 +145,17 @@ test('create with rollback', function (t) {
 test('update', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.update(cid, 0, nextCat))
-  const feathers = {
+  const service = {
     update: () => Rx.Observable.of(merge({ id: 0, feathers: true }, nextCat))
+  }
+  const feathers = {
+    service: () => service
   }
   const store = {
     getState: () => ({ cats: catsData })
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'update', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'update', args: { id: 0, data: nextCat, params: {} } }),
     actionCreators.set(cid, 0, merge({ id: 0 }, nextCat)),
     actionCreators.set(cid, 0, merge({ id: 0, feathers: true }, nextCat)),
     actionCreators.complete(cid)
@@ -160,14 +172,17 @@ test('update with rollback', function (t) {
   const cid = createCid()
   const err = new Error('oh no')
   const action$ = Action$.of(cats.actions.update(cid, 0, nextCat))
-  const feathers = {
+  const service = {
     update: () => Rx.Observable.throw(err)
+  }
+  const feathers = {
+    service: () => service
   }
   const store = {
     getState: () => ({ cats: catsData })
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'update', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'update', args: { id: 0, data: nextCat, params: {} } }),
     actionCreators.set(cid, 0, merge({ id: 0 }, nextCat)),
     actionCreators.set(cid, 0, catsData[0]),
     actionCreators.error(cid, err)
@@ -183,14 +198,17 @@ test('update with rollback', function (t) {
 test('patch', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.patch(cid, 0, nextCat))
-  const feathers = {
+  const service = {
     patch: () => Rx.Observable.of(mergeAll([catsData[0], { feathers: true }, nextCat]))
+  }
+  const feathers = {
+    service: () => service
   }
   const store = {
     getState: () => ({ cats: catsData })
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'patch', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'patch', args: { id: 0, data: nextCat, params: {} } }),
     actionCreators.set(cid, 0, merge(catsData[0], nextCat)),
     actionCreators.set(cid, 0, mergeAll([catsData[0], { feathers: true }, nextCat])),
     actionCreators.complete(cid)
@@ -207,14 +225,17 @@ test('patch with rollback', function (t) {
   const cid = createCid()
   const err = new Error('oh no')
   const action$ = Action$.of(cats.actions.patch(cid, 0, nextCat))
-  const feathers = {
+  const service = {
     patch: () => Rx.Observable.throw(err)
+  }
+  const feathers = {
+    service: () => service
   }
   const store = {
     getState: () => ({ cats: catsData })
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'patch', args: { id: 0, data: nextCat, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'patch', args: { id: 0, data: nextCat, params: {} } }),
     actionCreators.set(cid, 0, merge(catsData[0], nextCat)),
     actionCreators.set(cid, 0, catsData[0]),
     actionCreators.error(cid, err)
@@ -230,14 +251,17 @@ test('patch with rollback', function (t) {
 test('remove', function (t) {
   const cid = createCid()
   const action$ = Action$.of(cats.actions.remove(cid, 0))
-  const feathers = {
+  const service = {
     remove: () => Rx.Observable.of(catsData[0])
+  }
+  const feathers = {
+    service: () => service
   }
   const store = {
     getState: () => ({ cats: catsData })
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'remove', args: { id: 0, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'remove', args: { id: 0, params: {} } }),
     actionCreators.set(cid, 0, undefined),
     actionCreators.set(cid, 0, undefined),
     actionCreators.complete(cid)
@@ -254,14 +278,17 @@ test('remove with rollback', function (t) {
   const cid = createCid()
   const err = new Error('oh no')
   const action$ = Action$.of(cats.actions.remove(cid, 0))
-  const feathers = {
+  const service = {
     remove: () => Rx.Observable.throw(err)
+  }
+  const feathers = {
+    service: () => service
   }
   const store = {
     getState: () => ({ cats: catsData })
   }
   const expected = [
-    actionCreators.start(cid, { service, method: 'remove', args: { id: 0, params: {} } }),
+    actionCreators.start(cid, { service: 'cats', method: 'remove', args: { id: 0, params: {} } }),
     actionCreators.set(cid, 0, undefined),
     actionCreators.set(cid, 0, catsData[0]),
     actionCreators.error(cid, err)
