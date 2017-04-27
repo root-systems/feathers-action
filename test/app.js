@@ -13,8 +13,7 @@ var createModule = require('../')
 
 const serviceNames = ['cats', 'dogs']
 
-
-test('create, update, patch and remove update the store', function(t) {
+test('create, update, patch and remove update the store', function (t) {
   const app = createApp(serviceNames)
   const {cats, dogs} = createModule(serviceNames)
   const catActions = cats.actions
@@ -33,29 +32,29 @@ test('create, update, patch and remove update the store', function(t) {
   const patchCid = Cid()
   const removeCid = Cid()
 
-  Store$(store) 
+  Store$(store)
     .filter((store) => store.cats.cats[0])
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].name, 'fluffy') 
-      store.dispatch(catActions.update(Cid(), 0,  {name: 'tick'}))
+      t.equal(cats.cats[0].name, 'fluffy')
+      store.dispatch(catActions.update(Cid(), 0, {name: 'tick'}))
       return Store$(store)
     })
     .filter((store) => store.cats.cats[0].name === 'tick')
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].name, 'tick') 
-      store.dispatch(catActions.patch(Cid(), 0,  {nickName: 'fatboy'}))
+      t.equal(cats.cats[0].name, 'tick')
+      store.dispatch(catActions.patch(Cid(), 0, {nickName: 'fatboy'}))
       return Store$(store)
     })
     .filter((store) => store.cats.cats[0] && store.cats.cats[0].nickName === 'fatboy')
     .take(1)
     .mergeMap(({cats}) => {
-      t.equal(cats.cats[0].nickName, 'fatboy') 
+      t.equal(cats.cats[0].nickName, 'fatboy')
       store.dispatch(catActions.remove(Cid(), 0))
       return Store$(store)
     })
-    .filter((store) => !store.cats.cats[0] )
+    .filter((store) => !store.cats.cats[0])
     .take(1)
     .subscribe(() => {
       t.pass()
@@ -63,16 +62,14 @@ test('create, update, patch and remove update the store', function(t) {
     })
 
   store.dispatch(cats.actions.create(createCid, {name: 'fluffy'}))
-
 })
 
-test('create optimistically updates store and then sets the id when request succeeds', function(t) {
-
+test('create optimistically updates store and then sets the id when request succeeds', function (t) {
   const app = createApp(serviceNames)
   const {cats, dogs} = createModule(serviceNames)
   const catActions = cats.actions
 
-  const updaters = reduxFp.combine({cats: cats.updater, dogs: dogs.updater}) 
+  const updaters = reduxFp.combine({cats: cats.updater, dogs: dogs.updater})
   const epics = combineEpics(cats.epic, dogs.epic)
 
   const reducer = (state, action) => updaters(action)(state)
@@ -84,18 +81,18 @@ test('create optimistically updates store and then sets the id when request succ
   const createCid = Cid()
   const keysHaveCidKey = pipe(keys, any(key => key === createCid))
 
-  Store$(store) 
+  Store$(store)
     .filter((store) => store.cats.cats[createCid])
     .take(1)
     .subscribe(({cats}) => {
-      t.equal(cats.cats[createCid].name, 'fluffy', 'Cat is created optimistically') 
+      t.equal(cats.cats[createCid].name, 'fluffy', 'Cat is created optimistically')
     })
 
-  Store$(store) 
+  Store$(store)
     .filter((store) => store.cats.cats[0])
     .take(1)
     .subscribe(({cats}) => {
-      t.equal(cats.cats[0].name, 'fluffy', 'Cat is set at the expected id') 
+      t.equal(cats.cats[0].name, 'fluffy', 'Cat is set at the expected id')
       t.false(keysHaveCidKey(cats.cats), 'Temporary cid key is deleted')
       t.end()
     })
