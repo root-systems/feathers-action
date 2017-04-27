@@ -1,95 +1,63 @@
 'use strict'
 
+const createAction = require('@f/create-action')
 const pipe = require('ramda/src/pipe')
 const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const merge = require('ramda/src/merge')
 const invertObj = require('ramda/src/invertObj')
-
-const { DEFAULT_METHODS } = require('./constants')
 
 const createActionTypes = require('./action-types')
 
 module.exports = createActionCreators
 
 function createActionCreators (options) {
-  const {
-    methods = DEFAULT_METHODS
-  } = options
-
   const actionTypes = createActionTypes(options)
 
-  const getActionCreatorsForMethods = pipe(
-    invertObj,
-    mapObjIndexed((_, method) => Action(method, argsCreatorByMethod[method]))
-  )
+  const getActionCreatorsForTypes = mapObjIndexed((_, type) => {
+    return ActionCreator(type)
+  })
 
-  return merge(
-    getActionCreatorsForMethods(methods),
-    {
-      // special
-      set: Set('set'),
-      setAll: SetAll('setAll'),
-      unset: Set('unset'),
-      unsetAll: SetAll('unsetAll'),
-      start,
-      complete,
-      error
+  return getActionCreatorsForTypes(actionTypes)
+
+  function ActionCreator (type) {
+    const argsCreator = argsCreatorByType[type]
+    const payloadCreator = (cid, ...args) => argsCreator(...args)
+    const actionCreator = createAction(actionTypes[type], payloadCreator, metaCreator)
+    // HACK because @f/create-action doesn't do this already
+    if (type === 'error') {
+      return (...args) => {
+        var action = actionCreator(...args)
+        action.error = true
+        return action
+      }
     }
-  )
-
-  function start (cid, call) {
-    return {
-      type: actionTypes.start,
-      payload: call,
-      meta: { cid }
-    }
-  }
-  function complete (cid, result) {
-    return {
-      type: actionTypes.complete,
-      payload: result,
-      meta: { cid }
-    }
-  }
-  function error (cid, err) {
-    return {
-      type: actionTypes.error,
-      payload: err,
-      error: true,
-      meta: { cid }
-    }
-  }
-
-  function Action (method, argsCreator) {
-    return (cid, ...args) => ({
-      type: actionTypes[method],
-      payload: argsCreator(...args),
-      meta: { cid }
-    })
-  }
-
-  function Set (name) {
-    return (cid, id, data) => ({
-      type: actionTypes[name],
-      payload: { id, data },
-      meta: { cid }
-    })
-  }
-
-  function SetAll (name) {
-    return (cid, data) => ({
-      type: actionTypes[name],
-      payload: data,
-      meta: { cid }
-    })
+    return actionCreator
   }
 }
 
-const argsCreatorByMethod = {
+const argsCreatorByType = {
   find: (params = {}) => ({ params }),
   get: (id, params = {}) => ({ id, params }),
   create: (data, params = {}) => ({ data, params }),
   update: (id, data, params = {}) => ({ id, data, params }),
   patch: (id, data, params = {}) => ({ id, data, params }),
-  remove: (id, params = {}) => ({ id, params })
+  remove: (id, params = {}) => ({ id, params }),
+
+  set: (id, data) => ({ id, data }),
+  unset: (id, data) => ({ id, data }),
+  setAll: (data) => data,
+  unsetAll: (data) => data,
+
+  start: (request) => request,
+  complete: (result) => result,
+  error: (err) => err
+}
+
+function payloadCreator (type) {
+  const argsCreator = argsCreatorByMethod[type]
+  return (cid, ...args) => argsCreator(...args)
+}
+
+function metaCreator (cid) {
+  return { cid }
 }
