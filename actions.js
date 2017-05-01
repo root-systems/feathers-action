@@ -23,14 +23,6 @@ function createActionCreators (options) {
     const argsCreator = argsCreatorByType[type]
     const payloadCreator = (cid, ...args) => argsCreator(...args)
     const actionCreator = createAction(actionTypes[type], payloadCreator, metaCreator)
-    // HACK because @f/create-action doesn't do this already
-    if (type === 'error') {
-      return (...args) => {
-        var action = actionCreator(...args)
-        action.error = true
-        return action
-      }
-    }
     return actionCreator
   }
 }

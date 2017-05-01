@@ -76,7 +76,6 @@ test('request error', function (t) {
   const expectedAction = {
     type: actionTypes.error,
     payload: err,
-    error: true,
     meta: {
       cid
     }
