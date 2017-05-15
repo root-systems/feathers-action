@@ -25,7 +25,7 @@ function createEpic (options) {
   } = options
 
   const actionTypes = createActionTypes(options)
-  const actionCreators = createActionCreators(options)
+  const actionCreators = createActionCreators(merge(options, { internal: true }))
 
   const epics = createEpics({ actionTypes, actionCreators, service })
   return combineEpics(...values(epics))

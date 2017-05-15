@@ -17,7 +17,7 @@ const createModule = require('../')
 
 const service = 'cats'
 const cats = createModule({ service })
-const actionCreators = createActionCreators({ service })
+const actionCreators = createActionCreators({ service, internal: true })
 
 var currentCid = 100
 function createCid () {

@@ -7,8 +7,8 @@ const { all, has, __ } = require('ramda')
 const createModule = require('../')
 const createActionTypes = require('../action-types')
 
-const cats = createModule('cats')
-const actionTypes = createActionTypes({ service: 'cats' })
+const cats = createModule({ service: 'cats', internal: true })
+const actionTypes = createActionTypes({ service: 'cats', internal: true })
 
 test('action creators have correct keys', function (t) {
   const keys = ['find', 'create', 'get', 'update', 'patch', 'remove', 'set', 'start', 'complete', 'error']

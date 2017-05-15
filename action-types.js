@@ -16,23 +16,25 @@ module.exports = createActionTypes
 function createActionTypes (options) {
   const {
     service,
+    internal = false,
     methods = DEFAULT_METHODS
   } = options
 
   const createActionType = ActionType(service)
 
-  return merge(
-    getActionTypesForMethods(createActionType, methods),
-    {
-      set: createActionType(['set']),
-      setAll: createActionType(['setAll']),
-      unset: createActionType(['unset']),
-      unsetAll: createActionType(['unsetAll']),
-      start: createActionType(['start']),
-      complete: createActionType(['complete']),
-      error: createActionType(['error'])
-    }
-  )
+  const internalTypes = {
+    set: createActionType(['set']),
+    setAll: createActionType(['setAll']),
+    unset: createActionType(['unset']),
+    unsetAll: createActionType(['unsetAll']),
+    start: createActionType(['start']),
+    complete: createActionType(['complete']),
+    error: createActionType(['error'])
+  }
+  const externalTypes = getActionTypesForMethods(createActionType, methods)
+
+  if (internal) return merge(externalTypes, internalTypes)
+  else return merge(externalTypes, { complete: internalTypes.complete })
 }
 
 const ActionType = (service) => {

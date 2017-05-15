@@ -3,7 +3,7 @@ const test = require('tape')
 const createActionTypes = require('../action-types')
 
 test('returns the service action ids', function (t) {
-  const actionTypes = createActionTypes({ service: 'cats' })
+  const actionTypes = createActionTypes({ service: 'cats', internal: true })
 
   t.equal(actionTypes.find, 'FEATHERS_CATS_FIND')
   t.equal(actionTypes.get, 'FEATHERS_CATS_GET')

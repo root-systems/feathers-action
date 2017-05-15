@@ -7,6 +7,7 @@ const pipe = require('ramda/src/pipe')
 const reduce = require('ramda/src/reduce')
 const __ = require('ramda/src/__')
 const { withDefaultState, concat, updateStateAt, handleActions, decorate } = require('redux-fp')
+const merge = require('ramda/src/merge')
 
 const createActionTypes = require('./action-types')
 
@@ -15,7 +16,7 @@ module.exports = createUpdater
 function createUpdater (options) {
   const { service } = options
 
-  const actionTypes = createActionTypes(options)
+  const actionTypes = createActionTypes(merge(options, { internal: true }))
 
   return concat(
     createServiceUpdater(actionTypes, service),
