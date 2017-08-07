@@ -57,7 +57,14 @@ function createRequestUpdater (actionTypes) {
   const requestUpdateHandlers = {
     [actionTypes.start]: action => {
       const { cid } = action.meta
-      return assoc(cid, action.payload)
+      return pipe(
+        assoc(cid, action.payload),
+        assocPath([cid, 'isReady'], false)
+      )
+    },
+    [actionTypes.ready]: action => {
+      const { cid } = action.meta
+      return assocPath([cid, 'isReady'], true)
     },
     [actionTypes.complete]: action => {
       const { cid } = action.meta

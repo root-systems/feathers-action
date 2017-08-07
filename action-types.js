@@ -29,6 +29,7 @@ function createActionTypes (options) {
       unset: createActionType(['unset']),
       unsetAll: createActionType(['unsetAll']),
       start: createActionType(['start']),
+      ready: createActionType(['ready']),
       complete: createActionType(['complete']),
       error: createActionType(['error'])
     }
