@@ -45,7 +45,12 @@ const createRequestHandlers = actions => {
     find: (response$, { cid }) => Rx.Observable
       .concat(
         // set all initial results
-        response$.first().map(values => actions.setAll(cid, values)),
+        response$.first().mergeMap(values => {
+          return Rx.Observable.of(
+            actions.setAll(cid, values),
+            actions.ready(cid)
+          )
+        }),
         // update the next results as a pairwise diff
         response$.pairwise().mergeMap(([prev, next]) => {
           const removed = getRemoved(prev, next)
@@ -56,13 +61,17 @@ const createRequestHandlers = actions => {
           return Rx.Observable.of(...diff)
         })
       ),
-    get: (response$, { cid, args }) => response$
-      .map(value => {
-        // `feathers-reactive` return null on 'removed' events
-        return (value === null)
-          ? actions.unset(cid, args.id)
-          : actions.set(cid, args.id, value)
-      }),
+    get: (response$, { cid, args }) => Rx.Observable
+      .merge(
+        response$
+          .map(value => {
+            // `feathers-reactive` return null on 'removed' events
+            return (value === null)
+              ? actions.unset(cid, args.id)
+              : actions.set(cid, args.id, value)
+          }),
+        response$.first().mapTo(actions.ready(cid))
+      ),
     create: (response$, { cid, args }) => {
       const setOptimistic = actions.set(cid, cid, args.data)
       const unsetOptimistic = actions.unset(cid, cid)

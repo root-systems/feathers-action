@@ -41,6 +41,7 @@ const argsCreatorByType = {
   unsetAll: (data) => data,
 
   start: (request) => request,
+  ready: () => null,
   complete: (result) => result,
   error: (err) => err
 }
