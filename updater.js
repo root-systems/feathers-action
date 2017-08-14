@@ -40,7 +40,7 @@ function createServiceUpdater (actionTypes, service) {
     },
     [actionTypes.unsetAll]: (action) => {
       return reduce((sofar, next) => {
-        return dissoc(next, sofar)
+        return dissoc(next.id, sofar)
       }, __, action.payload)
     }
   }
