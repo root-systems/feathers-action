@@ -45,14 +45,12 @@ const createRequestHandlers = actions => {
     find: (response$, { cid }) => Rx.Observable
       .concat(
         // set all initial results
-        response$.first().mergeMap(values => {
-          return Rx.Observable.of(
-            actions.setAll(cid, values),
-            actions.ready(cid)
-          )
-        }),
+        response$.first().concatMap(values => Rx.Observable.of(
+          actions.setAll(cid, values),
+          actions.ready(cid)
+        )),
         // update the next results as a pairwise diff
-        response$.pairwise().mergeMap(([prev, next]) => {
+        response$.pairwise().concatMap(([prev, next]) => {
           const removed = getRemoved(prev, next)
           const diff = [
             actions.unsetAll(cid, removed),
@@ -78,7 +76,10 @@ const createRequestHandlers = actions => {
 
       const responseAction$ = response$
         .take(1)
-        .map(value => actions.set(cid, value.id, value))
+        .concatMap(value => Rx.Observable.of(
+          actions.set(cid, value.id, value),
+          actions.ready(cid)
+        ))
         .catch(err => Rx.Observable.of(actions.error(cid, err)))
 
       return Rx.Observable.of(setOptimistic)
@@ -104,7 +105,10 @@ const createRequestHandlers = actions => {
 
       const responseAction$ = response$
         .take(1)
-        .map(value => actions.unset(cid, value.id))
+        .concatMap(value => Rx.Observable.of(
+          actions.unset(cid, value.id),
+          actions.ready(cid)
+        ))
         .catch(err => Rx.Observable.of(resetOptimistic, actions.error(cid, err)))
 
       return Rx.Observable.of(setOptimistic)
@@ -127,7 +131,10 @@ const createRequestHandlers = actions => {
 
       const responseAction$ = response$
         .take(1)
-        .map(value => actions.set(cid, value.id, value))
+        .concatMap(value => Rx.Observable.of(
+          actions.set(cid, value.id, value),
+          actions.ready(cid)
+        ))
         .catch(err => Rx.Observable.of(resetOptimistic, actions.error(cid, err)))
 
       return Rx.Observable.of(setOptimistic)
