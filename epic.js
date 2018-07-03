@@ -11,7 +11,7 @@ const propEq = require('ramda/src/propEq')
 const find = require('ramda/src/find')
 const not = require('ramda/src/not')
 const filter = require('ramda/src/filter')
-const { Observable, of, concat: indexConcat, merge: indexMerge } = require('rxjs')
+const { Observable, of, from, concat: indexConcat, merge: indexMerge } = require('rxjs')
 const {
   mergeMap,
   first,
@@ -24,7 +24,8 @@ const {
   startWith,
   concat,
   takeUntil,
-  filter: rxFilter
+  filter: rxFilter,
+  merge: rxMerge
 } = require('rxjs/operators')
 
 const createActionTypes = require('./action-types')
@@ -58,7 +59,7 @@ const createRequestHandlers = actions => {
   return {
     find: (response$, { cid }) => indexConcat(
       // set all initial results
-      response$.pipe(
+      from(response$).pipe(
         first(),
         concatMap(values => of(
           actions.setAll(cid, values),
@@ -66,7 +67,7 @@ const createRequestHandlers = actions => {
         ))
       ),
       // update the next results as a pairwise diff
-      response$.pipe(
+      from(response$).pipe(
         pairwise(),
         concatMap(([prev, next]) => {
           const removed = getRemoved(prev, next)
@@ -79,7 +80,7 @@ const createRequestHandlers = actions => {
       )
     ),
     get: (response$, { cid, args }) => indexMerge(
-      response$.pipe(
+      from(response$).pipe(
         rxMap(value => {
           // `feathers-reactive` return null on 'removed' events
           return (value === null)
@@ -87,7 +88,7 @@ const createRequestHandlers = actions => {
             : actions.set(cid, args.id, value)
         })
       ),
-      response$.pipe(
+      from(response$).pipe(
         first(),
         mapTo(actions.ready(cid))
       )
@@ -96,7 +97,7 @@ const createRequestHandlers = actions => {
       const setOptimistic = actions.set(cid, cid, args.data)
       const unsetOptimistic = actions.unset(cid, cid)
 
-      const responseAction$ = response$.pipe(
+      const responseAction$ = from(response$).pipe(
         take(1),
         concatMap(value => of(
           actions.set(cid, value.id, value),
@@ -128,7 +129,7 @@ const createRequestHandlers = actions => {
       const setOptimistic = actions.unset(cid, args.id)
       const resetOptimistic = actions.set(cid, args.id, previousData)
 
-      const responseAction$ = response$.pipe(
+      const responseAction$ = from(response$).pipe(
         take(1),
         concatMap(value => of(
           actions.unset(cid, value.id),
@@ -156,7 +157,7 @@ const createRequestHandlers = actions => {
       const setOptimistic = actions.set(cid, args.id, optimisticData)
       const resetOptimistic = actions.set(cid, args.id, previousData)
 
-      const responseAction$ = response$.pipe(
+      const responseAction$ = from(response$).pipe(
         take(1),
         concatMap(value => of(
           actions.set(cid, value.id, value),
@@ -194,10 +195,10 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
           const response$ = requester(args)
           const requestAction$ = requestHandler(response$, { cid, args, service, state$ })
 
-          const cidAction$ = action$.filter(isCid(cid))
-          const completeAction$ = cidAction$.filter(isCompleteAction)
-          const errorAction$ = cidAction$.filter(isErrorAction)
-          const cancelAction$ = completeAction$.merge(errorAction$)
+          const cidAction$ = action$.pipe(rxFilter(isCid(cid)))
+          const completeAction$ = cidAction$.pipe(rxFilter(isCompleteAction))
+          const errorAction$ = cidAction$.pipe(rxFilter(isErrorAction))
+          const cancelAction$ = completeAction$.pipe(rxMerge(errorAction$))
 
           return of(actionCreators.start(cid, { service, method, args })).pipe(
             concat(requestAction$),
