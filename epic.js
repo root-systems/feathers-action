@@ -41,8 +41,7 @@ function createEpic (options) {
   const actionCreators = createActionCreators(options)
 
   const epics = createEpics({ actionTypes, actionCreators, service })
-  console.log(`service: ${service}`)
-  console.log('epics', epics)
+
   return combineEpics(...values(epics))
 }
 
