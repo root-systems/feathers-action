@@ -24,6 +24,7 @@ const {
   startWith,
   concat,
   takeUntil,
+  takeWhile,
   filter: rxFilter,
   merge: rxMerge
 } = require('rxjs/operators')
@@ -204,8 +205,9 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
             concat(requestAction$),
             concat(of(actionCreators.complete(cid))),
             catchError(err => of(actionCreators.error(cid, err))),
-            takeUntil(cancelAction$),
-            rxFilter(endOnce(isEndAction))
+            takeWhile(endOnce(isEndAction)),
+            // takeUntil(cancelAction$),
+            // rxFilter(endOnce(isEndAction))
           )
         })
       )
