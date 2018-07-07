@@ -1,10 +1,7 @@
 'use strict'
 
 const createAction = require('@f/create-action')
-const pipe = require('ramda/src/pipe')
 const mapObjIndexed = require('ramda/src/mapObjIndexed')
-const merge = require('ramda/src/merge')
-const invertObj = require('ramda/src/invertObj')
 
 const createActionTypes = require('./action-types')
 
@@ -46,10 +43,10 @@ const argsCreatorByType = {
   error: (err) => err
 }
 
-function payloadCreator (type) {
-  const argsCreator = argsCreatorByMethod[type]
-  return (cid, ...args) => argsCreator(...args)
-}
+// function payloadCreator (type) {
+//   const argsCreator = argsCreatorByMethod[type]
+//   return (cid, ...args) => argsCreator(...args)
+// }
 
 function metaCreator (cid) {
   return { cid }

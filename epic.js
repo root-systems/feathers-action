@@ -2,8 +2,6 @@ const { combineEpics, ofType } = require('redux-observable')
 const is = require('typeof-is')
 const either = require('ramda/src/either')
 const merge = require('ramda/src/merge')
-const map = require('ramda/src/map')
-const __ = require('ramda/src/__')
 const mapObjIndexed = require('ramda/src/mapObjIndexed')
 const values = require('ramda/src/values')
 const pathEq = require('ramda/src/pathEq')
@@ -11,19 +9,18 @@ const propEq = require('ramda/src/propEq')
 const find = require('ramda/src/find')
 const not = require('ramda/src/not')
 const filter = require('ramda/src/filter')
-const { Observable, of, from, concat: indexConcat, merge: indexMerge } = require('rxjs')
+const { of, from, concat: indexConcat, merge: indexMerge } = require('rxjs')
 const {
   mergeMap,
   first,
   concatMap,
   pairwise,
-  map: rxMap,
+  map,
   mapTo,
   take,
   catchError,
   startWith,
   concat,
-  takeUntil,
   takeWhile,
   filter: rxFilter,
   merge: rxMerge
@@ -82,7 +79,7 @@ const createRequestHandlers = actions => {
     ),
     get: (response$, { cid, args }) => indexMerge(
       from(response$).pipe(
-        rxMap(value => {
+        map(value => {
           // `feathers-reactive` return null on 'removed' events
           return (value === null)
             ? actions.unset(cid, args.id)
@@ -148,7 +145,7 @@ const createRequestHandlers = actions => {
   // TODO: only rollback when _all_ updates for that id have errored
   // TODO: find a way to pass in actions for all updates of the same id
   function createUpdateOrPatchHandler (options) {
-    const { method, getOptimisticData } = options
+    const { getOptimisticData } = options
 
     return (response$, { cid, args, service, state$ }) => {
       const state = state$.value
@@ -205,7 +202,7 @@ const createEpics = ({ actionTypes, actionCreators, service }) => {
             concat(requestAction$),
             concat(of(actionCreators.complete(cid))),
             catchError(err => of(actionCreators.error(cid, err))),
-            takeWhile(endOnce(isEndAction)),
+            takeWhile(endOnce(isEndAction))
             // takeUntil(cancelAction$),
             // rxFilter(endOnce(isEndAction))
           )

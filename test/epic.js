@@ -1,20 +1,6 @@
 const test = require('tape')
-const { Observable, of, from, concat: indexConcat, merge: indexMerge, throwError } = require('rxjs')
+const { Observable, of, throwError } = require('rxjs')
 const {
-  tap,
-  mergeMap,
-  first,
-  concatMap,
-  pairwise,
-  map: rxMap,
-  mapTo,
-  take,
-  catchError,
-  startWith,
-  concat,
-  takeUntil,
-  filter: rxFilter,
-  merge: rxMerge,
   toArray
 } = require('rxjs/operators')
 const Action$ = require('redux-observable/lib/cjs/ActionsObservable').ActionsObservable
@@ -28,7 +14,6 @@ const catsData = {
 const newCat = { name: 'honey', description: 'sweet and delicious' }
 const nextCat = { name: 'sugar' }
 
-const createActionTypes = require('../action-types')
 const createActionCreators = require('../actions')
 const createModule = require('../')
 
@@ -393,6 +378,6 @@ test('create is handled by epic and emits set action twice when request succeeds
     })
 })
 
-*/
-
 const isType = propEq('type')
+
+*/

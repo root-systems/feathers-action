@@ -34,7 +34,6 @@ test('app works', function (t) {
   const cidPatch = Cid()
   const cidRemove = Cid()
 
-
   Store$(store).pipe(
     rxFilter((store) => store.cats && store.cats.cats[0]),
     take(1),
