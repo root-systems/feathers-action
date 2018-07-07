@@ -46,7 +46,8 @@ test('start sets the request at the cid', function (t) {
   const call = {
     method: 'create',
     service: 'cats',
-    args: {}
+    args: {},
+    isReady: false
   }
   const expectedState = assocPath(['feathers', cid], call, defaultState)
 
